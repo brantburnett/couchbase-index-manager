@@ -1,0 +1,5 @@
+.git*
+.editorconfig
+.travis.yml
+node_modules/
+/scripts

@@ -1,0 +1,11 @@
+name: BeersByAbv
+index_key:
+- abv
+condition: (`type` = 'beer')
+num_replica: 0
+---
+name: BeersByIbu
+index_key:
+- ibu
+condition: (`type` = 'beer')
+num_replica: 0

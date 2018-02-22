@@ -1,0 +1,12 @@
+**/*.js.map
+app/
+.git*
+.eslint*
+.babelrc
+gulpfile.js
+beer-sample/
+Dockerfile
+.dockerignore
+.editorconfig
+.travis.yml
+/scripts
