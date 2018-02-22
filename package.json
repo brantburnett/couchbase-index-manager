@@ -13,14 +13,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/btburnett3/couchbase-index-manager.git"
+    "url": "git+https://github.com/brantburnett/couchbase-index-manager.git"
   },
   "author": "Brant Burnett <btburnett3@gmail.com> (http://www.btburnett.com)",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/btburnett3/couchbase-index-manager/issues"
+    "url": "https://github.com/brantburnett/couchbase-index-manager/issues"
   },
-  "homepage": "https://github.com/btburnett3/couchbase-index-manager#readme",
+  "homepage": "https://github.com/brantburnett/couchbase-index-manager#readme",
   "devDependencies": {
     "babel-core": "^6.26.0",
     "babel-eslint": "^8.2.1",
