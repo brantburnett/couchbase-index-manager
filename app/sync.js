@@ -12,7 +12,7 @@ const lstat = util.promisify(fs.lstat);
 const readdir = util.promisify(fs.readdir);
 const readFile = util.promisify(fs.readFile);
 
-const INDEX_EXTENSIONS = ['.json', '.yaml'];
+const INDEX_EXTENSIONS = ['.json', '.yaml', '.yml'];
 
 /**
  * @typedef SyncOptions
@@ -150,7 +150,7 @@ export class Sync {
 
         if (ext === '.json') {
             handler(IndexDefinition.fromObject(JSON.parse(contents)));
-        } else if (ext === '.yaml') {
+        } else if (ext === '.yaml' || ext === '.yml') {
             yaml.safeLoadAll(contents, (doc) => {
                 handler(IndexDefinition.fromObject(doc));
             });
