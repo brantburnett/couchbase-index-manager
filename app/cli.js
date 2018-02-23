@@ -58,7 +58,7 @@ program
     .command('sync <bucket> <path>')
     .description('Synchronize indexes with index definition files')
     .option(
-        '-t, --build-timeout',
+        '-t, --build-timeout <timeout>',
         'Seconds to wait for indexes to complete building (default 5m)',
         /^\d+$/,
         300)
