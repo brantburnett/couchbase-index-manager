@@ -21,6 +21,17 @@
     "url": "https://github.com/brantburnett/couchbase-index-manager/issues"
   },
   "homepage": "https://github.com/brantburnett/couchbase-index-manager#readme",
+  "engines": {
+    "node": ">=6.9"
+  },
+  "keywords": [
+    "index",
+    "n1ql",
+    "couchbase",
+    "ci",
+    "cd",
+    "continuous"
+  ],
   "devDependencies": {
     "babel-core": "^6.26.0",
     "babel-eslint": "^8.2.1",

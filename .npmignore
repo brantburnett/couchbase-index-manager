@@ -4,9 +4,10 @@ app/
 .eslint*
 .babelrc
 gulpfile.js
-beer-sample/
+example/
 Dockerfile
 .dockerignore
+.vscode/
 .editorconfig
 .travis.yml
 /scripts
