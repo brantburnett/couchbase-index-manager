@@ -67,6 +67,9 @@ export class UpdateIndexMutation extends IndexMutation {
     }
 
     /**
+     * @private
+     * Formats a list of keys for human readable output
+     *
      * @param {{index_key: array.string}} index
      * @return {string}
      */

@@ -72,6 +72,7 @@ export class IndexDefinition {
 
         return definition;
     }
+
     /**
      * Gets the required index mutation, if any, to sync this definition
      *
@@ -98,6 +99,7 @@ export class IndexDefinition {
     }
 
     /**
+     * @private
      * Tests to see if a Couchbase index matches this definition
      *
      * @param {CouchbaseIndex} index
@@ -108,6 +110,7 @@ export class IndexDefinition {
             && index.condition === this.condition
             && _.isEqual(index.index_key, this.index_key);
     }
+
     /**
      * Formats a CREATE INDEX query which makes this index
      *
@@ -138,6 +141,7 @@ export class IndexDefinition {
     }
 
     /**
+     * @private
      * Limited subset of normalizations on conditions
      *
      * @param {string} condition

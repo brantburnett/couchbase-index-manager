@@ -90,6 +90,7 @@ export class Sync {
     }
 
     /**
+     * @private
      * Presents a confirmation prompt before executing the plan
      *
      * @return {boolean} True if user selected yes
@@ -105,7 +106,9 @@ export class Sync {
     }
 
     /**
+     * @private
      * Loads definitions from disk
+     *
      * @return {array.IndexDefinition}
      */
     async loadDefinitions() {
@@ -135,6 +138,7 @@ export class Sync {
     }
 
     /**
+     * @private
      * Loads index definitions from a file
      *
      * @param {string} filename File to read
