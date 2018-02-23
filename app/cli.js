@@ -2,6 +2,7 @@ import program from 'commander';
 import {extend} from 'lodash';
 import pkg from './../package.json';
 import chalk from 'chalk';
+import {ConnectionManager} from './connection-manager';
 import {Sync} from './sync';
 
 /**
@@ -91,9 +92,12 @@ program
             buildTimeout: cmd.buildTimeout * 1000,
         };
 
-        let sync = new Sync(connectionInfo, path, options);
+        let connectionManager = new ConnectionManager(connectionInfo);
+        handleAsync(connectionManager.execute((manager) => {
+            let sync = new Sync(manager, path, options);
 
-        handleAsync(sync.execute());
+            return sync.execute();
+        }));
     })
     .on('--help', () => {
         console.log();

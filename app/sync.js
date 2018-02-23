@@ -1,4 +1,3 @@
-import {Cluster, PasswordAuthenticator, ClassicAuthenticator} from 'couchbase';
 import {compact, extend} from 'lodash';
 import fs from 'fs';
 import path from 'path';
@@ -7,7 +6,6 @@ import yaml from 'js-yaml';
 import chalk from 'chalk';
 import {prompt} from 'inquirer';
 import {Plan} from './plan';
-import {IndexManager} from './index-manager';
 import {IndexDefinition} from './index-definition';
 
 const lstat = util.promisify(fs.lstat);
@@ -15,16 +13,6 @@ const readdir = util.promisify(fs.readdir);
 const readFile = util.promisify(fs.readFile);
 
 const INDEX_EXTENSIONS = ['.json', '.yaml'];
-
-/**
- * @typedef ConnectionInfo
- * @property {string} cluster
- * @property {string} username
- * @property {string} password
- * @property {string} bucketName
- * @property {boolean} disableRbac
- * @property {?string} bucketPassword
- */
 
 /**
  * @typedef SyncOptions
@@ -41,12 +29,12 @@ const INDEX_EXTENSIONS = ['.json', '.yaml'];
  */
 export class Sync {
     /**
-     * @param {ConnectionInfo} connectionInfo
+     * @param {IndexManager} manager
      * @param {string} path Path to file or directory with index definitions
      * @param {SyncOptions} [options]
      */
-    constructor(connectionInfo, path, options) {
-        this.connectionInfo = connectionInfo;
+    constructor(manager, path, options) {
+        this.manager = manager;
         this.path = path;
         this.options = extend({logger: console}, options);
     }
@@ -55,34 +43,28 @@ export class Sync {
      * Executes the synchronization
      */
     async execute() {
-        this.bootstrap();
+        let plan = await this.createPlan();
+        let options = this.options;
 
-        try {
-            let plan = await this.createPlan();
-            let options = this.options;
-
-            if (options.interactive) {
-                plan.print();
-            }
-
-            if (options.dryRun || plan.isEmpty()) {
-                return;
-            } else if (options.interactive && options.confirmationPrompt) {
-                if (!(await this.confirm())) {
-                    options.logger.info(
-                        chalk.yellowBright('Cancelling due to user input...'));
-                    return;
-                }
-            }
-
-            await plan.execute();
-        } finally {
-            this.close();
+        if (options.interactive) {
+            plan.print();
         }
+
+        if (options.dryRun || plan.isEmpty()) {
+            return;
+        } else if (options.interactive && options.confirmationPrompt) {
+            if (!(await this.confirm())) {
+                options.logger.info(
+                    chalk.yellowBright('Cancelling due to user input...'));
+                return;
+            }
+        }
+
+        await plan.execute();
     }
 
     /**
-     * Creates the plan (must be bootstrapped)
+     * Creates the plan
      *
      * @return {Plan}
      */
@@ -105,41 +87,6 @@ export class Sync {
         }
 
         return new Plan(this.manager, mutations, this.options);
-    }
-
-    /**
-     * Bootstraps the connection.  Automatically used by execute(),
-     * but required if you're manually calling createPlan().
-     */
-    bootstrap() {
-        this.cluster = new Cluster(this.connectionInfo.cluster);
-
-        if (this.connectionInfo.disableRbac) {
-            this.cluster.authenticate(new ClassicAuthenticator(
-                {},
-                this.connectionInfo.username,
-                this.connectionInfo.password
-            ));
-        } else {
-            this.cluster.authenticate(new PasswordAuthenticator(
-                this.connectionInfo.username,
-                this.connectionInfo.password));
-        }
-
-        this.bucket = this.cluster.openBucket(
-            this.connectionInfo.bucketName,
-            this.connectionInfo.bucketPassword);
-
-        this.manager =
-            new IndexManager(this.connectionInfo.bucketName, this.bucket);
-    }
-
-    /**
-     * Closes the Couchbase connection.  Automatically used by execute(),
-     * but required if you're manually calling createPlan().
-    */
-    close() {
-        this.bucket.disconnect();
     }
 
     /**
