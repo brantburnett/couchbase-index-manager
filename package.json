@@ -53,6 +53,7 @@
     "couchbase": "^2.4.3",
     "inquirer": "^5.1.0",
     "js-yaml": "^3.10.0",
-    "lodash": "^4.17.5"
+    "lodash": "^4.17.5",
+    "util.promisify": "^1.0.0"
   }
 }
