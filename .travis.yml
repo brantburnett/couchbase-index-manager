@@ -12,10 +12,12 @@ script:
 - docker build -t btburnett3/couchbase-index-manager:${TRAVIS_BUILD_NUMBER} .
 deploy:
 - provider: script
+  skip_cleanup: true
   script: scripts/docker_push.sh
   on:
     tags: true
 - provider: npm
+  skip_cleanup: true
   email: bburnett@centeredgesoftware.com
   api_key:
     secure: WaLhM7/6Kti9B671UpoYyAE+Z4tw/LyiEJq2cWaqW771qY2OM5uXlcKZHSJaszbDscKmsOJJtoM1YQ1nrOjDWyAeviaJBFkoMKPVYHH6ZMiB6RIlyFSvWoEFGO5IHQwSg4H1EXXT6FdMG8VdnZhhlVdFT1oKk16fKxRxp2b4Tuv2A4l43mezn6IV/NJ15FbFCtw/t5eWMn5tqUMCx9X5X8wP7nUDXHUiv1+erfUr7tgXO0gZmmlDgaZeFnfmTqPmC9Cd1BVF6fEpeYljqDIyoiCJz1XGBrHxXwCr6Nxqz7wb81/yBsp6tvhtfUcUwDgS+B3CKi3KlbK8e5stBVPfA0+/VagjjXFtbmqKTZAxmxSSd1HP4g/4Cwe8cIIF93i7GEWGwBPB8C6VMSaC0OFr+gwmlTFDCZ15uz9bw3amDdkSHQFVn8YTW8Hr9irBpsIaf80azMNCtXz2beBpEZ+Yblx1DwuCO7q/8HcLunhV6FWr1Was/Y6Z6ILIummaYVpIQHPD5Qh+cRSUd/Q/jiAWsWv/0lYaw0KhAxNquoRhQo2guyz+r84pisQ9AZDU4Jd8MRa08qTjxOlrY+0nNWJp4j1dc0J1QO/ADG/gdu/z3/KwkzWCsqtF6fWdQGzU1EkEjPs1P071NcU0mFTYJso8HTEQo1dfEDdeduFKeSPg6PA=
