@@ -76,6 +76,10 @@ export class Sync {
                 chalk.yellowBright('No index definitions found'));
         }
 
+        if (definitions.filter((def) => def.is_primary).length > 1) {
+            throw new Error('Cannot define more than one primary index');
+        }
+
         const currentIndexes = await this.manager.getIndexes();
 
         let mutations = compact(

@@ -32,11 +32,11 @@ export class ConnectionManager {
     async execute(handler) {
         let manager = this.bootstrap();
 
-        try {
-            return await handler(manager);
-        } finally {
-            this.close();
-        }
+        let result = await handler(manager);
+
+        this.close();
+
+        return result;
     }
 
     /**

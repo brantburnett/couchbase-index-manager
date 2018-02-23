@@ -8,9 +8,16 @@ export class CreateIndexMutation extends IndexMutation {
     /** @inheritDoc */
     print(logger) {
         logger.info(chalk.greenBright(`Create: ${this.definition.name}`));
-        logger.info(
-            chalk.greenBright(
-                `  Keys: ${this.definition.index_key.join(', ')}`));
+
+        if (this.definition.is_primary) {
+            logger.info(
+                chalk.greenBright(
+                    `  Keys: PRIMARY`));
+        } else {
+            logger.info(
+                chalk.greenBright(
+                    `  Keys: ${this.definition.index_key.join(', ')}`));
+        }
 
         if (this.definition.condition) {
             logger.info(

@@ -1,3 +1,6 @@
+name: beer_primary
+is_primary: true
+---
 name: BeersByAbv
 index_key:
 - abv

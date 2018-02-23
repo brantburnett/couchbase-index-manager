@@ -1,5 +1,7 @@
 # couchbase-index-manager
 
+[![Build Status](https://travis-ci.org/brantburnett/couchbase-index-manager.svg?branch=master)](https://travis-ci.org/brantburnett/couchbase-index-manager)
+
 ## Overview
 
 Provides a command-line interface to manage Couchbase indexes, synchronizing
@@ -51,6 +53,9 @@ the index, the columns to be index, and may also contain other options.
 When YAML is used, multiple definitions may be provided in a single file, separated by a line of dashes.
 
 ```yaml
+name: beer_primary
+is_primary: true
+---
 name: BeersByAbv
 index_key:
 - abv
@@ -71,10 +76,13 @@ lifecycle:
 | Field          | Required | Description |
 | -------------- |--------- | ----------- |
 | name           | Y | Name of the index. |
-| index_key      | Y | Array of index keys.  May be attributes of documents deterministic functions. |
+| is_primary     | N | True for a primary index. |
+| index_key      | N | Array of index keys.  May be attributes of documents deterministic functions. |
 | condition      | N | Condition for the WHERE clause of the index. |
 | num_replicas   | N | Defaults to 0, number of index replicas to create.  Not supported on 4.x clusters. |
 | lifecycle.drop | N | If true, drops the index if it exists. |
+
+A primary index *must not* have index_key or condition properties.  A secondary index *must* have values in the index_key array.  Additionally, there may not be more than one primary index in the set of definitions.
 
 ## Updating Indexes
 

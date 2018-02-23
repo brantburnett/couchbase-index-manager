@@ -11,7 +11,8 @@ import {DropIndexMutation} from './drop-index-mutation';
 /**
  * @typedef IndexDefinitionHash
  * @property {string} name
- * @property {array.string} index_key
+ * @property {?boolean} is_primary
+ * @property {?array.string} index_key
  * @property {?string} condition
  * @property {?number} num_replica
  * @property {?LifecycleHash} lifecycle
@@ -22,6 +23,7 @@ import {DropIndexMutation} from './drop-index-mutation';
  * @property {string} name
  * @property {array.string} index_key
  * @property {?string} condition
+ * @property {?boolean} is_primary
  */
 
 /**
@@ -41,6 +43,7 @@ function ensureEscaped(identifier) {
 /**
  * Represents an index
  * @property {!string} name
+ * @property {!boolean} is_primary
  * @property {!array.string} index_key
  * @property {?string} condition
  * @property {!number} num_replica
@@ -60,15 +63,32 @@ export class IndexDefinition {
             throw new Error('Index definition does not have a \'name\'');
         }
         definition.name = obj.name;
+        definition.is_primary = !!obj.is_primary;
 
-        definition.index_key = _.isArray(obj.index_key) ?
-            obj.index_key.map(ensureEscaped) :
-            _.compact([ensureEscaped(obj.index_key)]);
+        definition.index_key = !obj.index_key ?
+            [] :
+            _.isArray(obj.index_key) ?
+                obj.index_key.map(ensureEscaped) :
+                _.compact([ensureEscaped(obj.index_key)]);
 
         definition.condition =
             IndexDefinition.normalizeCondition(obj.condition);
         definition.num_replica = obj.num_replica || 0;
         definition.lifecycle = obj.lifecycle || {};
+
+        if (!definition.is_primary) {
+            if (definition.index_key.length === 0) {
+                throw new Error('index_key must include at least one key');
+            }
+        } else {
+            if (definition.index_key.length > 0) {
+                throw new Error('index_key is not allowed for a primary index');
+            }
+
+            if (definition.condition) {
+                throw new Error('condition is not allowed for a primary index');
+            }
+        }
 
         return definition;
     }
@@ -80,8 +100,7 @@ export class IndexDefinition {
      * @return {?IndexMutation}
      */
     getMutation(currentIndexes) {
-        let currentIndex = currentIndexes.find(
-            (index) => index.name === this.name);
+        let currentIndex = currentIndexes.find(this.isMatch, this);
 
         if (!currentIndex) {
             // Index isn't found
@@ -90,7 +109,7 @@ export class IndexDefinition {
             }
         } else if (this.lifecycle.drop) {
             return new DropIndexMutation(this, currentIndex);
-        } else if (!this.isMatch(currentIndex)) {
+        } else if (!this.is_primary && this.requiresUpdate(currentIndex)) {
             return new UpdateIndexMutation(this, currentIndex);
         }
 
@@ -106,9 +125,24 @@ export class IndexDefinition {
      * @return {boolean}
      */
     isMatch(index) {
-        return index.name == this.name
-            && index.condition === this.condition
-            && _.isEqual(index.index_key, this.index_key);
+        if (this.is_primary) {
+            // Consider any primary index a match, regardless of name
+            return index.is_primary;
+        } else {
+            return ensureEscaped(this.name) === ensureEscaped(index.name);
+        }
+    }
+
+    /**
+     * @private
+     * Tests to see if a Couchbase index requires updating
+     *
+     * @param {CouchbaseIndex} index
+     * @return {boolean}
+     */
+    requiresUpdate(index) {
+        return index.condition !== this.condition
+            || !_.isEqual(index.index_key, this.index_key);
     }
 
     /**
@@ -118,12 +152,19 @@ export class IndexDefinition {
      * @return {string}
      */
     getCreateStatement(bucketName) {
-        let statement = `CREATE INDEX ${ensureEscaped(this.name)}`;
-        statement += ` ON ${ensureEscaped(bucketName)}`;
-        statement += ` (${this.index_key.join(', ')})`;
+        let statement;
 
-        if (this.condition) {
-            statement += ` WHERE ${this.condition}`;
+        if (this.is_primary) {
+            statement = `CREATE PRIMARY INDEX ${ensureEscaped(this.name)}`;
+            statement += ` ON ${ensureEscaped(bucketName)}`;
+        } else {
+            statement = `CREATE INDEX ${ensureEscaped(this.name)}`;
+            statement += ` ON ${ensureEscaped(bucketName)}`;
+            statement += ` (${this.index_key.join(', ')})`;
+
+            if (this.condition) {
+                statement += ` WHERE ${this.condition}`;
+            }
         }
 
         let withClause = {
