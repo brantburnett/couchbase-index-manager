@@ -2,4 +2,4 @@
 'use strict';
 
 const path = require('path');
-require(path.join('..', 'dist', 'cli.js'));
+require(path.join('..', 'dist', 'cli.js')).run();
