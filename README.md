@@ -13,6 +13,7 @@ It also provides an API which may be used by importing a node module.
 - *-c couchbase://xxx* - Couchbase cluster, defaults to localhost
 - *-u username* - Username to connect to the Couchbase cluster
 - *-p password* - Password to connect to the Couchbase cluster
+- *--no-rbac* - Disable RBAC, required to connect to 4.x clusters
 - *--no-color* - Suppress color in output
 
 ## Sync Command
@@ -31,6 +32,7 @@ couchbase-index-manager sync <bucketName> <path>
 - *--dry-run* - Just output the plan, don't make any changes
 - *--safe* - Don't drop any existing indexes, only create new ones
 - *-t 30* - Seconds to wait for index build to complete, 0 for infinite (default 5m)
+- *--bucket-password password* - For 4.x clusters, provides the bucket password for secure buckets
 
 ### Examples
 
@@ -68,11 +70,11 @@ lifecycle:
 
 | Field          | Required | Description |
 | -------------- |--------- | ----------- |
-| name           | Y | Name of the index |
-| index_key      | Y | Array of index keys.  May be attributes of documents deterministic functions |
-| condition      | N | Condition for the WHERE clause of the index |
-| num_replicas   | N | Defaults to 0, number of index replicas to create |
-| lifecycle.drop | N | If true, drops the index if it exists |
+| name           | Y | Name of the index. |
+| index_key      | Y | Array of index keys.  May be attributes of documents deterministic functions. |
+| condition      | N | Condition for the WHERE clause of the index. |
+| num_replicas   | N | Defaults to 0, number of index replicas to create.  Not supported on 4.x clusters. |
+| lifecycle.drop | N | If true, drops the index if it exists. |
 
 ## Updating Indexes
 

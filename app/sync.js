@@ -1,4 +1,4 @@
-import {Cluster, PasswordAuthenticator} from 'couchbase';
+import {Cluster, PasswordAuthenticator, ClassicAuthenticator} from 'couchbase';
 import {compact, extend} from 'lodash';
 import fs from 'fs';
 import path from 'path';
@@ -21,6 +21,9 @@ const INDEX_EXTENSIONS = ['.json', '.yaml'];
  * @property {string} cluster
  * @property {string} username
  * @property {string} password
+ * @property {string} bucketName
+ * @property {boolean} disableRbac
+ * @property {?string} bucketPassword
  */
 
 /**
@@ -110,11 +113,23 @@ export class Sync {
      */
     bootstrap() {
         this.cluster = new Cluster(this.connectionInfo.cluster);
-        this.cluster.authenticate(
-            new PasswordAuthenticator(
-                this.connectionInfo.username, this.connectionInfo.password));
 
-        this.bucket = this.cluster.openBucket(this.connectionInfo.bucketName);
+        if (this.connectionInfo.disableRbac) {
+            this.cluster.authenticate(new ClassicAuthenticator(
+                {},
+                this.connectionInfo.username,
+                this.connectionInfo.password
+            ));
+        } else {
+            this.cluster.authenticate(new PasswordAuthenticator(
+                this.connectionInfo.username,
+                this.connectionInfo.password));
+        }
+
+        this.bucket = this.cluster.openBucket(
+            this.connectionInfo.bucketName,
+            this.connectionInfo.bucketPassword);
+
         this.manager =
             new IndexManager(this.connectionInfo.bucketName, this.bucket);
     }

@@ -16,6 +16,7 @@ function parseBaseOptions(cmd) {
         cluster: cmd.parent.cluster,
         username: cmd.parent.username,
         password: cmd.parent.password,
+        disableRbac: !cmd.parent.rbac,
     };
 }
 
@@ -47,6 +48,9 @@ program
         '-p, --password <password>',
         'Couchbase administrator password')
     .option(
+        '--no-rbac',
+        'Disable RBAC for 4.x clusters')
+    .option(
         '--no-color',
         'Supress color in output'); // Applied automatically by chalk
 
@@ -67,11 +71,16 @@ program
     .option(
         '--safe',
         'Prevents dropping indexes')
+    .option(
+        '--bucket-password <password>',
+        'Bucket password for secure buckets on 4.x clusters'
+    )
     .action((bucketName, path, cmd) => {
         let connectionInfo = extend(
             parseBaseOptions(cmd),
             {
                 bucketName,
+                bucketPassword: cmd.bucketPassword,
             });
 
         let options = {
