@@ -15,6 +15,7 @@ import {DropIndexMutation} from './drop-index-mutation';
  * @property {?array.string} index_key
  * @property {?string} condition
  * @property {?number} num_replica
+ * @property {?array.string} nodes
  * @property {?LifecycleHash} lifecycle
  */
 
@@ -60,12 +61,26 @@ function normalizeIndexKey(identifier) {
 }
 
 /**
+ * Ensures that a server name has a port number appended, defaults to 8091
+ * @param  {string} server
+ * @return {string}
+ */
+function ensurePort(server) {
+    if (server.match(/:\d+$/)) {
+        return server;
+    } else {
+        return server + ':8091';
+    }
+}
+
+/**
  * Represents an index
  * @property {!string} name
  * @property {!boolean} is_primary
  * @property {!array.string} index_key
  * @property {?string} condition
  * @property {!number} num_replica
+ * @property {?array.string} nodes
  * @property {!LifecycleHash} lifecycle
  */
 export class IndexDefinition {
@@ -92,7 +107,6 @@ export class IndexDefinition {
 
         definition.condition =
             IndexDefinition.normalizeCondition(obj.condition);
-        definition.num_replica = obj.num_replica || 0;
         definition.lifecycle = obj.lifecycle || {};
 
         if (!definition.is_primary) {
@@ -109,46 +123,126 @@ export class IndexDefinition {
             }
         }
 
+        if (obj.nodes && (obj.num_replica >= 0)) {
+            if (obj.nodes.length !== obj.num_replica + 1) {
+                throw new Error('mismatch between num_replica and nodes');
+            }
+        }
+
+        definition.num_replica = obj.num_replica ||
+            (obj.nodes ? obj.nodes.length - 1 : 0);
+        definition.nodes = obj.nodes;
+
         return definition;
     }
 
     /**
-     * Gets the required index mutation, if any, to sync this definition
+     * Gets the required index mutations, if any, to sync this definition
      *
      * @param  {array.CouchbaseIndex} currentIndexes
+     * @param  {?boolean} is4XCluster
+     * @yields {IndexMutation}
+     */
+    * getMutations(currentIndexes, is4XCluster) {
+        if (!is4XCluster) {
+            let mutation = this.getMutation(currentIndexes);
+            if (mutation) {
+                yield mutation;
+            }
+        } else {
+            for (let i=0; i<=this.num_replica; i++) {
+                let mutation = this.getMutation(currentIndexes, i, true);
+                if (mutation) {
+                    yield mutation;
+                }
+            }
+
+            if (!this.is_primary) {
+                // Handle dropping replicas if the count is lowered
+                for (let i=this.num_replica+1; i<=10; i++) {
+                    let mutation = this.getMutation(
+                        currentIndexes, i, true, true);
+
+                    if (mutation) {
+                        yield mutation;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @private
+     * @param  {array.CouchbaseIndex} currentIndexes
+     * @param  {?number} replicaNum
+     * @param  {?boolean} is4XCluster
+     * @param  {?boolean} forceDrop Always drop, even if lifecycle.drop = false.
+     *     Used for replicas.
      * @return {?IndexMutation}
      */
-    getMutation(currentIndexes) {
-        let currentIndex = currentIndexes.find(this.isMatch, this);
+    getMutation(currentIndexes, replicaNum, is4XCluster, forceDrop) {
+        let suffix = !replicaNum ?
+            '' :
+            `_replica${replicaNum}`;
+
+        let currentIndex = currentIndexes.find((index) => {
+            return this.isMatch(index, suffix);
+        });
+
+        let drop = forceDrop || this.lifecycle.drop;
 
         if (!currentIndex) {
             // Index isn't found
-            if (!this.delete) {
-                return new CreateIndexMutation(this);
+            if (!drop) {
+                return new CreateIndexMutation(this, this.name + suffix,
+                    this.getWithClause(replicaNum, is4XCluster));
             }
-        } else if (this.lifecycle.drop) {
-            return new DropIndexMutation(this, currentIndex);
+        } else if (drop) {
+            return new DropIndexMutation(this, currentIndex.name);
         } else if (!this.is_primary && this.requiresUpdate(currentIndex)) {
-            return new UpdateIndexMutation(this, currentIndex);
+            return new UpdateIndexMutation(this, this.name + suffix,
+                this.getWithClause(replicaNum, is4XCluster),
+                currentIndex);
         }
 
-        // No action
         return undefined;
+    }
+
+    /**
+     * @private
+     * @param  {?number} replicaNum
+     * @param  {?boolean} is4XCluster
+     * @return {Object<string, *>}
+     */
+    getWithClause(replicaNum, is4XCluster) {
+        if (!is4XCluster) {
+            return {
+                nodes: this.nodes.map(ensurePort),
+                num_replica: this.num_replica,
+            };
+        } else {
+            return {
+                nodes: this.nodes && [ensurePort(this.nodes[replicaNum])],
+            };
+        }
     }
 
     /**
      * @private
      * Tests to see if a Couchbase index matches this definition
      *
-     * @param {CouchbaseIndex} index
+     * @param  {CouchbaseIndex} index
+     * @param  {?string} suffix Optional suffix to append
      * @return {boolean}
      */
-    isMatch(index) {
+    isMatch(index, suffix) {
         if (this.is_primary) {
             // Consider any primary index a match, regardless of name
             return index.is_primary;
         } else {
-            return ensureEscaped(this.name) === ensureEscaped(index.name);
+            return (
+                ensureEscaped(this.name + (suffix || '')) ===
+                ensureEscaped(index.name));
         }
     }
 
@@ -167,17 +261,20 @@ export class IndexDefinition {
     /**
      * Formats a CREATE INDEX query which makes this index
      *
-     * @param {string} bucketName Name of the bucket to receive the index
+     * @param {string} bucketName
+     * @param {?string} indexName
+     * @param {?Object<string, *>} withClause
      * @return {string}
      */
-    getCreateStatement(bucketName) {
-        let statement;
+    getCreateStatement(bucketName, indexName, withClause) {
+        indexName = ensureEscaped(indexName || this.name);
 
+        let statement;
         if (this.is_primary) {
-            statement = `CREATE PRIMARY INDEX ${ensureEscaped(this.name)}`;
+            statement = `CREATE PRIMARY INDEX ${indexName}`;
             statement += ` ON ${ensureEscaped(bucketName)}`;
         } else {
-            statement = `CREATE INDEX ${ensureEscaped(this.name)}`;
+            statement = `CREATE INDEX ${indexName}`;
             statement += ` ON ${ensureEscaped(bucketName)}`;
             statement += ` (${this.index_key.join(', ')})`;
 
@@ -186,13 +283,18 @@ export class IndexDefinition {
             }
         }
 
-        let withClause = {
+        withClause = _.extend({}, withClause, {
             defer_build: true,
-        };
+        });
 
-        if (this.num_replica) {
+        if (!withClause.num_replica) {
             // Don't include in the query string if not > 0
-            withClause.num_replica = this.num_replica;
+            delete withClause.num_replica;
+        }
+
+        if (!withClause.nodes || withClause.nodes.length === 0) {
+            // Don't include an empty value
+            delete withClause.nodes;
         }
 
         statement += ' WITH ' + JSON.stringify(withClause);

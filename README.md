@@ -79,10 +79,13 @@ lifecycle:
 | is_primary     | N | True for a primary index. |
 | index_key      | N | Array of index keys.  May be attributes of documents deterministic functions. |
 | condition      | N | Condition for the WHERE clause of the index. |
-| num_replicas   | N | Defaults to 0, number of index replicas to create.  Not supported on 4.x clusters. |
+| num_replica    | N | Defaults to 0, number of index replicas to create. |
+| nodes          | N | List of nodes for index placement.  Automatic placement is used if not present. |
 | lifecycle.drop | N | If true, drops the index if it exists. |
 
 A primary index *must not* have index_key or condition properties.  A secondary index *must* have values in the index_key array.  Additionally, there may not be more than one primary index in the set of definitions.
+
+If `nodes` and `num_replica` are both present, then `num_replica` must be the number of nodes minus one.
 
 ## Updating Indexes
 
@@ -93,6 +96,19 @@ Therefore, it is important that the definition files be created with normalizati
 ## Dropping Indexes
 
 If an index is removed from the definition files, it is not dropped.  This prevents different CI/CD processes from interfering with each other as they manage different indexes.  To drop an index, leave the definition in place but set `lifecycle.drop` to `true`.
+
+## Replicas and Couchbase Server 4.X
+
+Replicas are emulated on Couchbase Server 4.X by creating multiple indexes.  If `num_replica` is greater than 0, the additional indexes are named with the suffix `_replicaN`, where N starts at 1.  For example, an index with 2 replicas named `MyIndex` will have 3 indexes, `MyIndex`, `MyIndex_replica1`, and `MyIndex_replica2`.
+
+Note that the `nodes` list is only respected during index creation, indexes will not be moved between nodes if they already exist.
+
+## Replicas and Couchbase Server 5
+
+Currently, it isn't possible to detect replicas via queries to "system:indexes".  Therefore, `num_replica` is only respected during index creation.  Changes to `num_replica` on existing indexes will be ignored.
+
+Note that the `nodes` list is only respected during index creation, indexes will not be moved between nodes if they already exist.
+
 
 ## Docker Image
 

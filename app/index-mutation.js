@@ -1,13 +1,19 @@
 /**
  * Abstract base class for index mutations
  * @abstract
+ *
+ * @private @property {IndexDefinition} definition
+ * @private @property {string} name Name of the index to mutate,
+ *     may be different than the name in the definition
  */
 export class IndexMutation {
     /**
-     * @param  {IndexDefinition} definition Index definition
+     * @param {IndexDefinition} definition Index definition
+     * @param {?string} name Name fo the index to mutate
      */
-    constructor(definition) {
+    constructor(definition, name) {
         this.definition = definition;
+        this.name = name || definition.name;
     }
 
     /**

@@ -5,9 +5,21 @@ import chalk from 'chalk';
  * Represents an index mutation which is creating a new index
  */
 export class CreateIndexMutation extends IndexMutation {
+    /**
+     * @param {IndexDefinition} definition Index definition
+     * @param {?string} name Name fo the index to mutate
+     * @param {?Object<string, *>} withClause
+     *     Additional clauses for index creation
+     */
+    constructor(definition, name, withClause) {
+        super(definition, name);
+
+        this.withClause = withClause || {};
+    }
+
     /** @inheritDoc */
     print(logger) {
-        logger.info(chalk.greenBright(`Create: ${this.definition.name}`));
+        logger.info(chalk.greenBright(`Create: ${this.name}`));
 
         if (this.definition.is_primary) {
             logger.info(
@@ -34,8 +46,12 @@ export class CreateIndexMutation extends IndexMutation {
 
     /** @inheritDoc */
     async execute(indexManager, logger) {
-        logger.info(chalk.greenBright(`Creating ${this.definition.name}...`));
+        logger.info(chalk.greenBright(`Creating ${this.name}...`));
 
-        await indexManager.createIndex(this.definition);
+        let statement = this.definition.getCreateStatement(
+            indexManager.bucketName, this.name, this.withClause
+        );
+
+        await indexManager.createIndex(statement);
     }
 }
