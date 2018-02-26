@@ -2,16 +2,21 @@ import {N1qlQuery} from 'couchbase';
 
 /**
  * Manages Couchbase indexes
+ *
+ * @property {!string} bucketName
+ * @property {!boolean} is4XCluster
  */
 export class IndexManager {
     /**
      * @param {string} bucketName
      * @param {CouchbaseBucket} bucket
+     * @param {boolean} is4XCluster
      */
-    constructor(bucketName, bucket) {
+    constructor(bucketName, bucket, is4XCluster) {
         this.bucketName = bucketName;
         this.bucket = bucket;
         this.manager = bucket.manager();
+        this.is4XCluster = is4XCluster;
     }
 
     /**
@@ -31,12 +36,10 @@ export class IndexManager {
 
     /**
      * Creates an index based on an index definition
-     * @param {IndexDefinition} definition
+     * @param {string} statement N1QL query statement to create the index
      * @return {Promise}
      */
-    createIndex(definition) {
-        let statement = definition.getCreateStatement(this.bucketName);
-
+    createIndex(statement) {
         return new Promise((resolve, reject) => {
             this.bucket.query(N1qlQuery.fromString(statement), (err) => {
                 if (err) {

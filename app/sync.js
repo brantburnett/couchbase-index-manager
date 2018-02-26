@@ -1,4 +1,4 @@
-import {compact, extend} from 'lodash';
+import {compact, flatten, extend} from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
@@ -85,9 +85,10 @@ export class Sync {
 
         const currentIndexes = await this.manager.getIndexes();
 
-        let mutations = compact(
-            definitions.map(
-                (definition) => definition.getMutation(currentIndexes)));
+        let mutations = compact(flatten(
+            definitions.map((definition) => Array.from(definition.getMutations(
+                currentIndexes,
+                this.manager.is4XCluster)))));
 
         if (this.options.safe) {
             mutations = mutations.filter((p) => !p.isSafe());

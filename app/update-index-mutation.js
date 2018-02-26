@@ -15,13 +15,17 @@ import {isEqual} from 'lodash';
  * Represents an index mutation which updates an existing index
  */
 export class UpdateIndexMutation extends IndexMutation {
-     /**
-     * @param {IndexDefinition} definition
+    /**
+     * @param {IndexDefinition} definition Index definition
+     * @param {?string} name Name fo the index to mutate
+     * @param {?Object<string, *>} withClause
+     *     Additional clauses for index creation
      * @param {CouchbaseIndex} existingIndex
      */
-    constructor(definition, existingIndex) {
-        super(definition);
+    constructor(definition, name, withClause, existingIndex) {
+        super(definition, name);
 
+        this.withClause = withClause || {};
         this.existingIndex = existingIndex;
     }
 
@@ -29,7 +33,7 @@ export class UpdateIndexMutation extends IndexMutation {
     print(logger) {
         logger.info(
             chalk.cyanBright(
-                `Update: ${this.definition.name}`));
+                `Update: ${this.name}`));
 
         if (!isEqual(this.existingIndex.index_key, this.definition.index_key)) {
             logger.info(
@@ -59,10 +63,11 @@ export class UpdateIndexMutation extends IndexMutation {
     /** @inheritDoc */
     async execute(manager, logger) {
         let dropMutation =
-            new DropIndexMutation(this.definition, this.existingIndex);
+            new DropIndexMutation(this.definition, this.name);
         await dropMutation.execute(manager, logger);
 
-        let createMutation = new CreateIndexMutation(this.definition);
+        let createMutation = new CreateIndexMutation(
+            this.definition, this.name, this.withClause);
         await createMutation.execute(manager, logger);
     }
 
