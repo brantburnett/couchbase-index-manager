@@ -41,6 +41,25 @@ function ensureEscaped(identifier) {
 }
 
 /**
+ * Ensures that the N1QL identifier is escaped with backticks, unless it's a
+ *     function call or array subquery
+ *
+ * @param  {!string} identifier
+ * @return {!string}
+ */
+function normalizeIndexKey(identifier) {
+    identifier = identifier.trim().replace(/\s{2,}/g, ' ');
+
+    if (identifier.match(/^(\(?\s*DISTINCT|ALL)\s*\(?\s*ARRAY|\(/i)) {
+        // Contains parentheses or starts with ALL ARRAY or DISTINCT ARRAY
+        // Don't escape
+        return identifier;
+    } else {
+        return ensureEscaped(identifier);
+    }
+}
+
+/**
  * Represents an index
  * @property {!string} name
  * @property {!boolean} is_primary
@@ -68,8 +87,8 @@ export class IndexDefinition {
         definition.index_key = !obj.index_key ?
             [] :
             _.isArray(obj.index_key) ?
-                obj.index_key.map(ensureEscaped) :
-                _.compact([ensureEscaped(obj.index_key)]);
+                obj.index_key.map(normalizeIndexKey) :
+                _.compact([normalizeIndexKey(obj.index_key)]);
 
         definition.condition =
             IndexDefinition.normalizeCondition(obj.condition);

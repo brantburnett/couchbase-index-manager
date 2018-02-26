@@ -12,3 +12,9 @@ index_key:
 - ibu
 condition: (`type` = 'beer')
 num_replica: 0
+---
+name: BreweriesByAddress
+index_key:
+- (distinct (array `p` for `p` in `address` end))
+condition: (`type` = 'brewery')
+num_replica: 0
