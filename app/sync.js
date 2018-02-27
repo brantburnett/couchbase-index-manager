@@ -1,4 +1,4 @@
-import {compact, flatten, extend} from 'lodash';
+import {compact, flatten, extend, isArrayLike} from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
@@ -33,12 +33,13 @@ const INDEX_EXTENSIONS = ['.json', '.yaml', '.yml'];
 export class Sync {
     /**
      * @param {IndexManager} manager
-     * @param {string} path Path to file or directory with index definitions
+     * @param {string | array.string} path
+     *     Path or array of paths to files or directories with index definitions
      * @param {SyncOptions} [options]
      */
     constructor(manager, path, options) {
         this.manager = manager;
-        this.path = path;
+        this.paths = isArrayLike(path) ? Array.from(path) : [path];
         this.options = extend({logger: console}, options);
     }
 
@@ -120,26 +121,30 @@ export class Sync {
      * @return {array.IndexDefinition}
      */
     async loadDefinitions() {
-        let files;
-        try {
-            if ((await lstat(this.path)).isDirectory()) {
-                files = await readdir(this.path);
-            } else {
-                files = [this.path];
+        let files = [];
+        for (let filePath of this.paths) {
+            try {
+                if ((await lstat(filePath)).isDirectory()) {
+                    let filesInDir = await readdir(filePath);
+                    let joinedFilesInDir = filesInDir.map(
+                        (fileName) => path.join(filePath, fileName));
+
+                    files.push(...joinedFilesInDir);
+                } else {
+                    files.push(filePath);
+                }
+            } catch (e) {
+                throw new Error('Path not found');
             }
-        } catch (e) {
-            throw new Error('Path not found');
         }
 
+        let definitions = [];
         // Only look at specific file types
         files = files.filter((filename) =>
             INDEX_EXTENSIONS.includes(path.extname(filename).toLowerCase()));
 
-        let definitions = [];
         for (let i=0; i<files.length; i++) {
-            let filename = path.join(this.path, files[i]);
-
-            await this.loadDefinition(filename, (def) => definitions.push(def));
+            await this.loadDefinition(files[i], (def) => definitions.push(def));
         }
 
         return definitions;

@@ -64,7 +64,7 @@ export function run() {
             'Supress color in output'); // Applied automatically by chalk
 
     program
-        .command('sync <bucket> <path>')
+        .command('sync <bucket> <path...>')
         .description('Synchronize indexes with index definition files')
         .option(
             '-t, --build-timeout <timeout>',

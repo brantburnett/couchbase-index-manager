@@ -24,10 +24,10 @@ It also provides an API which may be used by importing a node module.
 The sync command executes an index synchronization
 
 ```sh
-couchbase-index-manager sync <bucketName> <path>
+couchbase-index-manager [common-options] sync [sync-options] <bucketName> <path...>
 ```
 
-`bucketName` should be the name of the bucket to sync, and `path` is the path to the index definitions.  `path` may be either a single YAML or JSON file, or a directory containing multiple files.
+`bucketName` should be the name of the bucket to sync, and `path` is the path to the index definitions.  `path` may be either a single YAML or JSON file, or a directory containing multiple files.  Multiple paths may also be provided, they will be processed in order.
 
 ### Options
 
