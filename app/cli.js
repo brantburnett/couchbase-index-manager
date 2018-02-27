@@ -54,6 +54,9 @@ export function run() {
             '-p, --password <password>',
             'Couchbase administrator password')
         .option(
+            '-q, --quiet',
+            'Quiet output, only prints errors and warnings')
+        .option(
             '--no-rbac',
             'Disable RBAC for 4.x clusters')
         .option(
@@ -70,7 +73,7 @@ export function run() {
             300)
         .option(
             '-f, --force',
-            'Bypass confirmation prompt')
+            'Bypass confirmation prompt (automatic if -q or --quiet)')
         .option(
             '--dry-run',
             'Output planned changes without committing them')
@@ -96,6 +99,16 @@ export function run() {
                 safe: cmd.safe,
                 buildTimeout: cmd.buildTimeout * 1000,
             };
+
+            if (cmd.parent.quiet) {
+                // Suppress info output for quiet
+                options.logger = extend({}, console, {
+                    info: () => {},
+                });
+
+                // Also assume no UI
+                options.interactive = false;
+            }
 
             let connectionManager = new ConnectionManager(connectionInfo);
             handleAsync(connectionManager.execute((manager) => {

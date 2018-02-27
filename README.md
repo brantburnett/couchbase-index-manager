@@ -15,6 +15,7 @@ It also provides an API which may be used by importing a node module.
 - *-c couchbase://xxx* - Couchbase cluster, defaults to localhost
 - *-u username* - Username to connect to the Couchbase cluster
 - *-p password* - Password to connect to the Couchbase cluster
+- *-q* - Quiet output, only prints errors and warnings
 - *--no-rbac* - Disable RBAC, required to connect to 4.x clusters
 - *--no-color* - Suppress color in output
 
