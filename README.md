@@ -96,6 +96,37 @@ A primary index *must not* have index_key or condition properties.  A secondary 
 
 If `nodes` and `num_replica` are both present, then `num_replica` must be the number of nodes minus one.
 
+## Overrides
+
+When deploying to multiple environments, there may be variations in index definitions.  For example, you may have a different number of replicas or a different list of node assignments.  To support this, you may also apply overrides to the index definitions.
+
+Overrides are processed in the order they are found, and can only override index definitions that with the same name.  The index definition must also be found before the override.  Any field which is not supplied on the override will be skipped, leaving the original value unchanged.  The exception is `nodes` and `num_replica`, updating one will automatically adjust the other field.
+
+| Field          | Required | Description |
+| -------------- |--------- | ----------- |
+| type           | Y | Always "override". |
+| name           | Y | Name of the index. |
+| is_primary     | N | True for a primary index. |
+| index_key      | N | Array of index keys.  May be attributes of documents deterministic functions. |
+| condition      | N | Condition for the WHERE clause of the index. |
+| num_replica    | N | Number of index replicas to create. |
+| nodes          | N | List of nodes for index placement. |
+| lifecycle.drop | N | If true, drops the index if it exists. |
+| post_process   | N | Optional Javascript function body which may further alter the index definition. "this" will be the index definition. |
+
+### Example
+
+```yaml
+type: override
+name: BeersByAbv
+num_replica: 2
+---
+type: override
+name: BeersByIbu
+post_process: |
+  this.num_replicas += 2;
+```
+
 ## Updating Indexes
 
 It is important that couchbase-index-manager be able to recognize when indexes are updated.  Couchbase Server performs certain normalizations on both index_key and condition, meaning that the values in Couchbase may be slightly different than the values submitted when the index is created.

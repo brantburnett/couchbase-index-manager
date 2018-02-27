@@ -17,4 +17,12 @@ name: BreweriesByAddress
 index_key:
 - (distinct (array `p` for `p` in `address` end))
 condition: (`type` = 'brewery')
+num_replica: 2
+---
+type: override # Overrides valus set previously for this index
+name: BreweriesByAddress
 num_replica: 0
+# A post processing function can futher alter the definition
+# "this" will be the index definition
+post_process: |
+  console.log(`Num replicas: ${this.num_replica}`);
