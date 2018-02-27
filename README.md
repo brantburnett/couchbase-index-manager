@@ -1,6 +1,6 @@
 # couchbase-index-manager
 
-[![Build Status](https://travis-ci.org/brantburnett/couchbase-index-manager.svg?branch=master)](https://travis-ci.org/brantburnett/couchbase-index-manager) [![npm version](https://badge.fury.io/js/couchbase-index-manager.svg)](https://badge.fury.io/js/couchbase-index-manager)
+[![Build Status](https://travis-ci.org/brantburnett/couchbase-index-manager.svg?branch=master)](https://travis-ci.org/brantburnett/couchbase-index-manager) [![npm version](https://badge.fury.io/js/couchbase-index-manager.svg)](https://badge.fury.io/js/couchbase-index-manager) [![](https://images.microbadger.com/badges/version/btburnett3/couchbase-index-manager.svg)](https://microbadger.com/images/btburnett3/couchbase-index-manager "Docker Image")
 
 ## Overview
 
