@@ -8,15 +8,27 @@ import {DropIndexMutation} from './drop-index-mutation';
  * @property {?boolean} drop
  */
 
-/**
- * @typedef IndexDefinitionHash
- * @property {string} name
+ /**
+ * @typedef DefinitionBase
+ * @abstract
  * @property {?boolean} is_primary
- * @property {?array.string} index_key
+ * @property {?array.string | string} index_key
  * @property {?string} condition
  * @property {?number} num_replica
  * @property {?array.string} nodes
  * @property {?LifecycleHash} lifecycle
+ */
+
+/**
+ * @typedef IndexDefinitionHash
+ * @extends DefinitionBase
+ * @property {!string} name
+ */
+
+ /**
+ * @typedef OverrideHash
+ * @extends DefinitionBase
+ * @property {?string | function} post_process
  */
 
 /**
@@ -74,6 +86,58 @@ function ensurePort(server) {
 }
 
 /**
+ * @type Object<string, function(*)>
+ *
+ * Map of processing functions to handle hash keys.
+ * "this" when the function is called will be the IndexDefinition.
+ * If a value is returned, it is assigned to the key.
+ * If "undefined" is returned, it assumed that the handler
+ * processed the value completely.
+ */
+const keys = {
+    is_primary: (val) => !!val,
+    index_key: (val) => !val ? [] :
+        _.isArrayLike(val) ?
+            Array.from(val).map(normalizeIndexKey) :
+            _.compact([normalizeIndexKey(val)]),
+    condition: (val) => IndexDefinition.normalizeCondition(val),
+    nodes: function(val) {
+        this.nodes = val;
+
+        if (val && val.length) {
+            this.num_replica = val.length-1;
+        }
+    },
+    num_replica: function(val) {
+        return val || (this.nodes ? this.nodes.length-1 : 0);
+    },
+    lifecycle: function(val) {
+        if (!this.lifecycle) {
+            this.lifecycle = {};
+        }
+
+        if (val) {
+            _.extend(this.lifecycle, val);
+        }
+    },
+    post_process: function(val) {
+        let fn;
+
+        if (_.isFunction(val)) {
+            fn = (require, process) => {
+                val.call(this);
+            };
+        } else if (_.isString(val)) {
+            fn = new Function('require', 'process', val);
+        }
+
+        if (fn) {
+            fn.call(this, require, process);
+        }
+    },
+};
+
+/**
  * Represents an index
  * @property {!string} name
  * @property {!boolean} is_primary
@@ -97,43 +161,52 @@ export class IndexDefinition {
             throw new Error('Index definition does not have a \'name\'');
         }
         definition.name = obj.name;
-        definition.is_primary = !!obj.is_primary;
 
-        definition.index_key = !obj.index_key ?
-            [] :
-            _.isArray(obj.index_key) ?
-                obj.index_key.map(normalizeIndexKey) :
-                _.compact([normalizeIndexKey(obj.index_key)]);
+        definition.applyOverride(obj, true);
 
-        definition.condition =
-            IndexDefinition.normalizeCondition(obj.condition);
-        definition.lifecycle = obj.lifecycle || {};
+        return definition;
+    }
 
-        if (!definition.is_primary) {
-            if (definition.index_key.length === 0) {
-                throw new Error('index_key must include at least one key');
-            }
-        } else {
-            if (definition.index_key.length > 0) {
-                throw new Error('index_key is not allowed for a primary index');
-            }
-
-            if (definition.condition) {
-                throw new Error('condition is not allowed for a primary index');
-            }
-        }
-
-        if (obj.nodes && (obj.num_replica >= 0)) {
-            if (obj.nodes.length !== obj.num_replica + 1) {
+    /**
+     * Apply overrides to the index definition
+     *
+     * @param {*} override
+     * @param {?boolean} applyMissing Overrwrite values even if they are
+     *     missing from the overrides object
+     */
+    applyOverride(override, applyMissing) {
+        // Validate the overrides
+        if (override.nodes && (override.num_replica >= 0)) {
+            if (override.nodes.length !== override.num_replica + 1) {
                 throw new Error('mismatch between num_replica and nodes');
             }
         }
 
-        definition.num_replica = obj.num_replica ||
-            (obj.nodes ? obj.nodes.length - 1 : 0);
-        definition.nodes = obj.nodes;
+        // Process the keys
+        Object.keys(keys).forEach((key) => {
+            if (applyMissing || override[key] !== undefined) {
+                let result = keys[key].call(this, override[key]);
 
-        return definition;
+                if (result !== undefined) {
+                    this[key] = result;
+                }
+            }
+        });
+
+        // Validate the resulting defintion
+        if (!this.is_primary) {
+            if (this.index_key.length === 0) {
+                throw new Error('index_key must include at least one key');
+            }
+        } else {
+            if (this.index_key.length > 0) {
+                throw new Error('index_key is not allowed for a primary index');
+            }
+
+            if (this.condition) {
+                throw new Error('condition is not allowed for a primary index');
+            }
+        }
     }
 
     /**
@@ -311,7 +384,7 @@ export class IndexDefinition {
      */
     static normalizeCondition(condition) {
         if (!condition) {
-            return condition;
+            return '';
         }
 
         return condition.replace(/'([^']*)'/g, '"$1"');

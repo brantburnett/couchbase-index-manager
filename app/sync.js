@@ -128,7 +128,8 @@ export class Sync {
             if (filePath === '-') {
                 // read from stdin
 
-                await this.loadFromStdIn((def) => definitions.push(def));
+                await this.loadFromStdIn(
+                    (def) => this.processDefinition(definitions, def));
 
                 // Can't do interactive prompts if processing from stdin
                 this.options.interactive = false;
@@ -156,7 +157,8 @@ export class Sync {
             INDEX_EXTENSIONS.includes(path.extname(filename).toLowerCase()));
 
         for (let i=0; i<files.length; i++) {
-            await this.loadDefinition(files[i], (def) => definitions.push(def));
+            await this.loadDefinition(files[i],
+                (def) => this.processDefinition(definitions, def));
         }
 
         return definitions;
@@ -167,18 +169,16 @@ export class Sync {
      * Loads index definitions from a file
      *
      * @param {string} filename File to read
-     * @param {function(IndexDefinition)} handler Handler for loaded definitions
+     * @param {function(*)} handler Handler for loaded definitions
      */
     async loadDefinition(filename, handler) {
         let ext = path.extname(filename).toLowerCase();
         let contents = await readFile(filename, 'utf8');
 
         if (ext === '.json') {
-            handler(IndexDefinition.fromObject(JSON.parse(contents)));
+            handler(JSON.parse(contents));
         } else if (ext === '.yaml' || ext === '.yml') {
-            yaml.safeLoadAll(contents, (doc) => {
-                handler(IndexDefinition.fromObject(doc));
-            });
+            yaml.safeLoadAll(contents, handler);
         }
     }
 
@@ -203,12 +203,10 @@ export class Sync {
                 try {
                     if (data.match(/^\s*{/)) {
                         // Appears to be JSON
-                        handler(IndexDefinition.fromObject(JSON.parse(data)));
+                        handler(JSON.parse(data));
                     } else {
                         // Assume it's YAML
-                        yaml.safeLoadAll(data, (doc) => {
-                            handler(IndexDefinition.fromObject(doc));
-                        });
+                        yaml.safeLoadAll(data, handler);
                     }
 
                     resolve();
@@ -217,5 +215,38 @@ export class Sync {
                 }
             });
         });
+    }
+
+    /**
+     * @private
+     * Processes a definition and adds to the current definitions or
+     *     applies overrides to the matching definition
+     *
+     * @param {array.IndexDefinition} definitions Current definitions
+     * @param {*} definition New definition to process
+     */
+    processDefinition(definitions, definition) {
+        let match = definitions.find((p) => p.name === definition.name);
+
+        if (definition.type === 'override') {
+            // Override definition
+            if (match) {
+                match.applyOverride(definition);
+            } else {
+                // Ignore overrides with no matching index
+                this.options.logger.warn(
+                    chalk.yellowBright(
+                        `No index definition found '${definition.name}'`));
+            }
+        } else {
+            // Regular index definition
+
+            if (match) {
+                throw new Error(
+                    `Duplicate index definition '${definition.name}'`);
+            }
+
+            definitions.push(IndexDefinition.fromObject(definition));
+        }
     }
 }

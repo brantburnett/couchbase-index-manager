@@ -3,3 +3,4 @@
 .travis.yml
 node_modules/
 /scripts
+/example
