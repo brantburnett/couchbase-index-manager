@@ -121,8 +121,21 @@ export class Sync {
      * @return {array.IndexDefinition}
      */
     async loadDefinitions() {
+        let definitions = [];
+
         let files = [];
         for (let filePath of this.paths) {
+            if (filePath === '-') {
+                // read from stdin
+
+                await this.loadFromStdIn((def) => definitions.push(def));
+
+                // Can't do interactive prompts if processing from stdin
+                this.options.interactive = false;
+
+                continue;
+            }
+
             try {
                 if ((await lstat(filePath)).isDirectory()) {
                     let filesInDir = await readdir(filePath);
@@ -138,7 +151,6 @@ export class Sync {
             }
         }
 
-        let definitions = [];
         // Only look at specific file types
         files = files.filter((filename) =>
             INDEX_EXTENSIONS.includes(path.extname(filename).toLowerCase()));
@@ -168,5 +180,42 @@ export class Sync {
                 handler(IndexDefinition.fromObject(doc));
             });
         }
+    }
+
+    /**
+     * @private
+     * Loads index definitions from stdin
+     *
+     * @param {function(IndexDefinition)} handler Handler for loaded definitions
+     * @return {Promise}
+     */
+    loadFromStdIn(handler) {
+        return new Promise((resolve, reject) => {
+            process.stdin.resume();
+            process.stdin.setEncoding('utf8');
+
+            let data = '';
+            process.stdin.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            process.stdin.on('end', () => {
+                try {
+                    if (data.match(/^\s*{/)) {
+                        // Appears to be JSON
+                        handler(IndexDefinition.fromObject(JSON.parse(data)));
+                    } else {
+                        // Assume it's YAML
+                        yaml.safeLoadAll(data, (doc) => {
+                            handler(IndexDefinition.fromObject(doc));
+                        });
+                    }
+
+                    resolve();
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
     }
 }

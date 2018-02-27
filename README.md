@@ -29,6 +29,14 @@ couchbase-index-manager [common-options] sync [sync-options] <bucketName> <path.
 
 `bucketName` should be the name of the bucket to sync, and `path` is the path to the index definitions.  `path` may be either a single YAML or JSON file, or a directory containing multiple files.  Multiple paths may also be provided, they will be processed in order.
 
+Supply "-" as the path to process definitions from stdin.  JSON input will be assumed if it starts with a curly brace, otherwise it will be parsed as YAML.
+
+```
+cat definitions.yaml | couchbase-index-manager -c couchbase://node -u Administrator -p password sync beer-sample -
+```
+
+**Note:** --force is assumed if processing from stdin.
+
 ### Options
 
 - *-f* - Skip the configuration prompt, just run the sync (useful for scripting)
