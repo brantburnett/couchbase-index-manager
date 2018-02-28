@@ -13,6 +13,10 @@ index_key:
 condition: (`type` = 'beer')
 num_replica: 0
 ---
+name: DocsByType
+index_key:
+- type
+---
 name: BreweriesByAddress
 index_key:
 - (distinct (array `p` for `p` in `address` end))

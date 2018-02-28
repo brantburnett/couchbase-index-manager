@@ -327,7 +327,7 @@ export class IndexDefinition {
      * @return {boolean}
      */
     requiresUpdate(index) {
-        return index.condition !== this.condition
+        return (index.condition || '') !== this.condition
             || !_.isEqual(index.index_key, this.index_key);
     }
 
