@@ -290,7 +290,7 @@ export class IndexDefinition {
     getWithClause(replicaNum, is4XCluster) {
         if (!is4XCluster) {
             return {
-                nodes: this.nodes.map(ensurePort),
+                nodes: this.nodes ? this.nodes.map(ensurePort) : undefined,
                 num_replica: this.num_replica,
             };
         } else {
