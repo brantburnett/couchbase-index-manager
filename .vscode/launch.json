@@ -8,7 +8,7 @@
             "type": "node",
             "request": "launch",
             "name": "Sync",
-            "program": "${workspaceFolder}/dist/cli.js",
+            "program": "${workspaceFolder}/bin/couchbase-index-manager",
             "runtimeArgs": ["--nolazy"],
             "args": [
                 "-p",
