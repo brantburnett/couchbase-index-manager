@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import {IndexDefinitionBase} from './index-definition-base';
 import {CreateIndexMutation} from './create-index-mutation';
 import {UpdateIndexMutation} from './update-index-mutation';
 import {DropIndexMutation} from './drop-index-mutation';
@@ -147,7 +148,18 @@ const keys = {
  * @property {?array.string} nodes
  * @property {!LifecycleHash} lifecycle
  */
-export class IndexDefinition {
+export class IndexDefinition extends IndexDefinitionBase {
+     /**
+     * Creates a new IndexDefinition from a simple object map
+     *
+     * @param  {IndexDefinitionHash} hashMap
+     */
+    constructor(hashMap) {
+        super(hashMap);
+
+        this.applyOverride(hashMap, true);
+    }
+
     /**
      * Creates a new IndexDefinition from a simple object map
      *
@@ -155,16 +167,7 @@ export class IndexDefinition {
      * @return {IndexDefinition}
      */
     static fromObject(obj) {
-        let definition = new IndexDefinition();
-
-        if (!obj.name || !_.isString(obj.name)) {
-            throw new Error('Index definition does not have a \'name\'');
-        }
-        definition.name = obj.name;
-
-        definition.applyOverride(obj, true);
-
-        return definition;
+        return new IndexDefinition(obj);
     }
 
     /**
