@@ -2,6 +2,7 @@
 app/
 .git*
 .eslint*
+.markdownlint*
 .babelrc
 gulpfile.js
 example/
