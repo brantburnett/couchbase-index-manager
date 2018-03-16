@@ -84,12 +84,18 @@ export class Sync {
             throw new Error('Cannot define more than one primary index');
         }
 
+        if (this.manager.is4XCluster) {
+            // Force all definitions to use manual replica management
+            definitions.forEach((def) => {
+                def.manual_replica = true;
+            });
+        }
+
         const currentIndexes = await this.manager.getIndexes();
 
         let mutations = compact(flatten(
             definitions.map((definition) => Array.from(definition.getMutations(
-                currentIndexes,
-                this.manager.is4XCluster)))));
+                currentIndexes)))));
 
         if (this.options.safe) {
             mutations = mutations.filter((p) => !p.isSafe());

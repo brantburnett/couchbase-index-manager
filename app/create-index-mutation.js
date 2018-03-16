@@ -37,7 +37,8 @@ export class CreateIndexMutation extends IndexMutation {
                     `  Cond: ${this.definition.condition}`));
         }
 
-        if (this.definition.num_replica > 0) {
+        if (this.definition.num_replica > 0
+            && !this.definition.manual_replica) {
             logger.info(
                 chalk.greenBright(
                     `  Repl: ${this.definition.num_replica}`));

@@ -1,6 +1,6 @@
 # couchbase-index-manager
 
-[![Build Status](https://travis-ci.org/brantburnett/couchbase-index-manager.svg?branch=master)](https://travis-ci.org/brantburnett/couchbase-index-manager) [![npm version](https://badge.fury.io/js/couchbase-index-manager.svg)](https://badge.fury.io/js/couchbase-index-manager) [![](https://images.microbadger.com/badges/version/btburnett3/couchbase-index-manager.svg)](https://microbadger.com/images/btburnett3/couchbase-index-manager "Docker Image")
+[![Build Status](https://travis-ci.org/brantburnett/couchbase-index-manager.svg?branch=master)](https://travis-ci.org/brantburnett/couchbase-index-manager) [![npm version](https://badge.fury.io/js/couchbase-index-manager.svg)](https://badge.fury.io/js/couchbase-index-manager) [![Docker Image](https://images.microbadger.com/badges/version/btburnett3/couchbase-index-manager.svg)](https://microbadger.com/images/btburnett3/couchbase-index-manager "Docker Image")
 
 ## Overview
 
@@ -31,7 +31,7 @@ couchbase-index-manager [common-options] sync [sync-options] <bucketName> <path.
 
 Supply "-" as the path to process definitions from stdin.  JSON input will be assumed if it starts with a curly brace, otherwise it will be parsed as YAML.
 
-```
+```sh
 cat definitions.yaml | couchbase-index-manager -c couchbase://node -u Administrator -p password sync beer-sample -
 ```
 
@@ -52,7 +52,6 @@ couchbase-index-manager -c couchbase://localhost -u Administrator -p password sy
 couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/file.yaml
 couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/file.json
 ```
-
 
 ## Definition Files
 
@@ -88,6 +87,7 @@ lifecycle:
 | is_primary     | N | True for a primary index. |
 | index_key      | N | Array of index keys.  May be attributes of documents deterministic functions. |
 | condition      | N | Condition for the WHERE clause of the index. |
+| manual_replica | N | Force manual replica management, rather than using Couchbase 5.X automatic replicas. Automatically set to true for Couchbase 4.X. |
 | num_replica    | N | Defaults to 0, number of index replicas to create. |
 | nodes          | N | List of nodes for index placement.  Automatic placement is used if not present. |
 | lifecycle.drop | N | If true, drops the index if it exists. |
@@ -109,6 +109,7 @@ Overrides are processed in the order they are found, and can only override index
 | is_primary     | N | True for a primary index. |
 | index_key      | N | Array of index keys.  May be attributes of documents deterministic functions. |
 | condition      | N | Condition for the WHERE clause of the index. |
+| manual_replica | N | Force manual replica management, rather than using Couchbase 5.X automatic replicas. Automatically set to true for Couchbase 4.X. |
 | num_replica    | N | Number of index replicas to create. |
 | nodes          | N | List of nodes for index placement. |
 | lifecycle.drop | N | If true, drops the index if it exists. |
@@ -137,22 +138,25 @@ Therefore, it is important that the definition files be created with normalizati
 
 If an index is removed from the definition files, it is not dropped.  This prevents different CI/CD processes from interfering with each other as they manage different indexes.  To drop an index, leave the definition in place but set `lifecycle.drop` to `true`.
 
-## Replicas and Couchbase Server 4.X
+## Manual Index Replica Management
 
 Replicas are emulated on Couchbase Server 4.X by creating multiple indexes.  If `num_replica` is greater than 0, the additional indexes are named with the suffix `_replicaN`, where N starts at 1.  For example, an index with 2 replicas named `MyIndex` will have 3 indexes, `MyIndex`, `MyIndex_replica1`, and `MyIndex_replica2`.
 
+This approach may also be enabled on Couchbase Server 5.X by settings `manual_replica` to true on the index definition.
+
 Note that the `nodes` list is only respected during index creation, indexes will not be moved between nodes if they already exist.
 
-## Replicas and Couchbase Server 5
+## Automatic Index Replica Management
+
+On Couchbase Server 5.X, automaticaly index replica managemnet is the default.  In this case, replicas are managed by Couchbase Server directly, rather than by couchbase-index-manager.
 
 Currently, it isn't possible to detect replicas via queries to "system:indexes".  Therefore, `num_replica` is only respected during index creation.  Changes to `num_replica` on existing indexes will be ignored.
 
 Note that the `nodes` list is only respected during index creation, indexes will not be moved between nodes if they already exist.
 
-
 ## Docker Image
 
-A Docker image for running couchbase-index-manager is available at https://hub.docker.com/r/btburnett3/couchbase-index-manager.
+A Docker image for running couchbase-index-manager is available at [Docker Hub](https://hub.docker.com/r/btburnett3/couchbase-index-manager).
 
 ```sh
 docker run --rm -it -v ./:/definitions btburnett3/couchbase-index-manager -c couchbase://cluster -u Administrator -p password sync beer-sample /definitions
