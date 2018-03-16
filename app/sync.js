@@ -246,7 +246,7 @@ export class Sync {
                     `Duplicate index definition '${definition.name}'`);
             }
 
-            definitions.push(IndexDefinition.fromObject(definition));
+            definitions.push(new IndexDefinition(definition));
         }
     }
 }

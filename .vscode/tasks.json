@@ -16,6 +16,13 @@
             "problemMatcher": [
                 "$pester"
             ]
+        },
+        {
+            "type": "npm",
+            "script": "lint",
+            "problemMatcher": [
+                "$eslint-stylish"
+            ]
         }
     ]
 }
