@@ -15,6 +15,7 @@ import {DropIndexMutation} from './drop-index-mutation';
  * @property {?boolean} is_primary
  * @property {?array.string | string} index_key
  * @property {?string} condition
+ * @property {?boolean} manual_replica
  * @property {?number} num_replica
  * @property {?array.string} nodes
  * @property {?LifecycleHash} lifecycle
@@ -109,6 +110,7 @@ const keys = {
             this.num_replica = val.length-1;
         }
     },
+    manual_replica: (val) => !!val,
     num_replica: function(val) {
         return val || (this.nodes ? this.nodes.length-1 : 0);
     },
@@ -144,6 +146,7 @@ const keys = {
  * @property {!boolean} is_primary
  * @property {!array.string} index_key
  * @property {?string} condition
+ * @property {!boolean} manual_replica
  * @property {!number} num_replica
  * @property {?array.string} nodes
  * @property {!LifecycleHash} lifecycle
@@ -216,18 +219,17 @@ export class IndexDefinition extends IndexDefinitionBase {
      * Gets the required index mutations, if any, to sync this definition
      *
      * @param  {array.CouchbaseIndex} currentIndexes
-     * @param  {?boolean} is4XCluster
      * @yields {IndexMutation}
      */
-    * getMutations(currentIndexes, is4XCluster) {
-        if (!is4XCluster) {
+    * getMutations(currentIndexes) {
+        if (!this.manual_replica) {
             let mutation = this.getMutation(currentIndexes);
             if (mutation) {
                 yield mutation;
             }
         } else {
             for (let i=0; i<=this.num_replica; i++) {
-                let mutation = this.getMutation(currentIndexes, i, true);
+                let mutation = this.getMutation(currentIndexes, i);
                 if (mutation) {
                     yield mutation;
                 }
@@ -237,7 +239,7 @@ export class IndexDefinition extends IndexDefinitionBase {
                 // Handle dropping replicas if the count is lowered
                 for (let i=this.num_replica+1; i<=10; i++) {
                     let mutation = this.getMutation(
-                        currentIndexes, i, true, true);
+                        currentIndexes, i, true);
 
                     if (mutation) {
                         yield mutation;
@@ -251,12 +253,11 @@ export class IndexDefinition extends IndexDefinitionBase {
      * @private
      * @param  {array.CouchbaseIndex} currentIndexes
      * @param  {?number} replicaNum
-     * @param  {?boolean} is4XCluster
      * @param  {?boolean} forceDrop Always drop, even if lifecycle.drop = false.
      *     Used for replicas.
      * @return {?IndexMutation}
      */
-    getMutation(currentIndexes, replicaNum, is4XCluster, forceDrop) {
+    getMutation(currentIndexes, replicaNum, forceDrop) {
         let suffix = !replicaNum ?
             '' :
             `_replica${replicaNum}`;
@@ -271,13 +272,13 @@ export class IndexDefinition extends IndexDefinitionBase {
             // Index isn't found
             if (!drop) {
                 return new CreateIndexMutation(this, this.name + suffix,
-                    this.getWithClause(replicaNum, is4XCluster));
+                    this.getWithClause(replicaNum));
             }
         } else if (drop) {
             return new DropIndexMutation(this, currentIndex.name);
         } else if (!this.is_primary && this.requiresUpdate(currentIndex)) {
             return new UpdateIndexMutation(this, this.name + suffix,
-                this.getWithClause(replicaNum, is4XCluster),
+                this.getWithClause(replicaNum),
                 currentIndex);
         }
 
@@ -287,11 +288,10 @@ export class IndexDefinition extends IndexDefinitionBase {
     /**
      * @private
      * @param  {?number} replicaNum
-     * @param  {?boolean} is4XCluster
      * @return {Object<string, *>}
      */
-    getWithClause(replicaNum, is4XCluster) {
-        if (!is4XCluster) {
+    getWithClause(replicaNum) {
+        if (!this.manual_replica) {
             return {
                 nodes: this.nodes ? this.nodes.map(ensurePort) : undefined,
                 num_replica: this.num_replica,
