@@ -1,4 +1,4 @@
-import {compact, flatten, extend, isArrayLike} from 'lodash';
+import {compact, flatten, extend, isArrayLike, isObjectLike} from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
@@ -7,6 +7,7 @@ import chalk from 'chalk';
 import {prompt} from 'inquirer';
 import {Plan} from './plan';
 import {IndexDefinition} from './index-definition';
+import {NodeMap} from './node-map';
 
 // Ensure that promisify is available on Node 6
 require('util.promisify').shim();
@@ -41,6 +42,7 @@ export class Sync {
         this.manager = manager;
         this.paths = isArrayLike(path) ? Array.from(path) : [path];
         this.options = extend({logger: console}, options);
+        this.nodeMap = new NodeMap();
     }
 
     /**
@@ -90,6 +92,9 @@ export class Sync {
                 def.manual_replica = true;
             });
         }
+
+        // Apply the node map
+        this.nodeMap.apply(definitions);
 
         const currentIndexes = await this.manager.getIndexes();
 
@@ -234,7 +239,13 @@ export class Sync {
     processDefinition(definitions, definition) {
         let match = definitions.find((p) => p.name === definition.name);
 
-        if (definition.type === 'override') {
+        if (definition.type === 'nodeMap') {
+            if (definition.map && isObjectLike(definition.map)) {
+                this.nodeMap.merge(definition.map);
+            } else {
+                throw new Error('Invalid nodeMap');
+            }
+        } else if (definition.type === 'override') {
             // Override definition
             if (match) {
                 match.applyOverride(definition);
@@ -244,7 +255,8 @@ export class Sync {
                     chalk.yellowBright(
                         `No index definition found '${definition.name}'`));
             }
-        } else {
+        } else if (definition.type === undefined
+            || definition.type === 'index') {
             // Regular index definition
 
             if (match) {
@@ -253,6 +265,8 @@ export class Sync {
             }
 
             definitions.push(new IndexDefinition(definition));
+        } else {
+            throw new Error(`Unknown definition type '${definition.type}'`);
         }
     }
 }

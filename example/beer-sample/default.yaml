@@ -30,3 +30,8 @@ num_replica: 0
 # "this" will be the index definition
 post_process: |
   console.log(`Num replicas: ${this.num_replica}`);
+---
+type: nodeMap
+map:
+  node1: 172.21.0.2
+  node2: 172.21.0.3

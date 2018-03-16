@@ -83,6 +83,7 @@ lifecycle:
 
 | Field          | Required | Description |
 | -------------- |--------- | ----------- |
+| type           | N | If present, must be "index" |
 | name           | Y | Name of the index. |
 | is_primary     | N | True for a primary index. |
 | index_key      | N | Array of index keys.  May be attributes of documents deterministic functions. |
@@ -115,17 +116,32 @@ Overrides are processed in the order they are found, and can only override index
 | lifecycle.drop | N | If true, drops the index if it exists. |
 | post_process   | N | Optional Javascript function body which may further alter the index definition. "this" will be the index definition. |
 
+## Node Maps
+
+When deploying to multiple environments, the names and IPs of nodes in the clusters probably vary.  You may use node maps to provide aliases for nodes to support these different environments.  Even for a single environment it may be useful to help reduce repetition.  For example, you may define several indexes referencing "node1" and "node2" in the `nodes` attribute.  Then add a node map which maps "node1" to "172.21.0.2" and "node2" to "127.21.0.3".
+
+Node maps are processed in the order they are encountered, and values defined in later node maps will override or append to earlier node maps.  Any node not found in the node map will be unchanged and treated as a fully qualified name.
+
+| Field          | Required | Description |
+| -------------- |--------- | ----------- |
+| type           | Y | Always "nodeMap".  |
+| map            | Y | A hashmap keyed by alias, with the value being the fully qualified node name. |
+
 ### Example
 
 ```yaml
-type: override
-name: BeersByAbv
-num_replica: 2
----
-type: override
 name: BeersByIbu
-post_process: |
-  this.num_replicas += 2;
+index_key:
+- ibu
+condition: (`type` = 'beer')
+nodes:
+- node1
+- node2
+---
+type: nodeMap
+map:
+  node1: 172.21.0.2
+  node2: 172.21.0.3
 ```
 
 ## Updating Indexes
@@ -148,7 +164,7 @@ Note that the `nodes` list is only respected during index creation, indexes will
 
 ## Automatic Index Replica Management
 
-On Couchbase Server 5.X, automaticaly index replica managemnet is the default.  In this case, replicas are managed by Couchbase Server directly, rather than by couchbase-index-manager.
+On Couchbase Server 5.X, automatic index replica managemnet is the default.  In this case, replicas are managed by Couchbase Server directly, rather than by couchbase-index-manager.
 
 Currently, it isn't possible to detect replicas via queries to "system:indexes".  Therefore, `num_replica` is only respected during index creation.  Changes to `num_replica` on existing indexes will be ignored.
 
