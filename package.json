@@ -6,7 +6,7 @@
   "scripts": {
     "build": "gulp build",
     "clean": "gulp clean",
-    "lint": "eslint ./"
+    "lint": "eslint ./ && markdownlint -i node_modules ./**/*.md"
   },
   "bin": {
     "couchbase-index-manager": "bin/couchbase-index-manager"
@@ -44,7 +44,8 @@
     "gulp": "^3.9.1",
     "gulp-babel": "^7.0.1",
     "gulp-plumber": "^1.2.0",
-    "gulp-sourcemaps": "^2.6.4"
+    "gulp-sourcemaps": "^2.6.4",
+    "markdownlint-cli": "^0.7.1"
   },
   "dependencies": {
     "babel-runtime": "^6.26.0",
