@@ -1,4 +1,4 @@
-import {extend} from 'lodash';
+import {extend, padStart} from 'lodash';
 import chalk from 'chalk';
 
 /**
@@ -72,7 +72,8 @@ export class Plan {
             chalk.greenBright('Building indexes...'));
         await this.manager.buildDeferredIndexes();
 
-        if (!await this.manager.waitForIndexBuild(this.options.buildTimeout)) {
+        if (!await this.manager.waitForIndexBuild(
+            this.options.buildTimeout, this.indexBuildTickHandler, this)) {
             this.options.logger.warn(
                 chalk.yellowBright('Some indexes are not online'));
         }
@@ -95,5 +96,23 @@ export class Plan {
      */
     addMutation(...mutations) {
         this.mutations.push(...mutations);
+    }
+
+    /**
+     * @private
+     * When running in Kubernetes and attaching to logs, there is a five
+     * minute timeout if there is no console output.  This tick handler
+     * ensures that output continues during that time.
+     *
+     * @param {number} milliseconds Milliseconds since the build wait started
+     */
+    indexBuildTickHandler(milliseconds) {
+        let secs = milliseconds / 1000;
+        let secsPart = padStart(Math.floor(secs % 60).toString(10), 2, '0');
+        let minsPart = Math.floor(secs / 60);
+
+        this.options.logger.log(chalk.greenBright(
+            `Building ${minsPart}m${secsPart}s...`
+        ));
     }
 }

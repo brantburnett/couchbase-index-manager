@@ -1,5 +1,12 @@
 import {N1qlQuery} from 'couchbase';
 
+const WAIT_TICK_INTERVAL = 10000; // in milliseconds
+
+/**
+ * @callback tickHandler
+ * @param {number} milliseconds Milliseconds since the build wait was started
+ */
+
 /**
  * Manages Couchbase indexes
  *
@@ -69,11 +76,27 @@ export class IndexManager {
 
     /**
      * Monitors building indexes and triggers a Promise when complete
-     * @param {?number} timeoutMilliseconds Null or 0 for no timeout
+     * @param {number} [timeoutMilliseconds] Null or 0 for no timeout
+     * @param {tickHandler} [tickHandler] Tick approx every 10 seconds
+     * @param {object} [thisObj] Object to be this for tickHandler
      * @return {Promise}
      */
-    async waitForIndexBuild(timeoutMilliseconds) {
+    async waitForIndexBuild(timeoutMilliseconds, tickHandler, thisObj) {
         const startTime = Date.now();
+        let lastTick = startTime;
+
+        /** Internal to trigger the tick */
+        function testTick() {
+            const now = Date.now();
+            const interval = now - lastTick;
+            if (interval >= WAIT_TICK_INTERVAL) {
+                lastTick = now;
+
+                if (tickHandler) {
+                    tickHandler.call(thisObj, now - startTime);
+                }
+            }
+        }
 
         while (!timeoutMilliseconds ||
             (Date.now() - startTime < timeoutMilliseconds)) {
@@ -84,7 +107,13 @@ export class IndexManager {
                 return true;
             }
 
+            // Because getIndexes has a latency,
+            // To get more accurate ticks check before and after the wait
+            testTick();
+
             await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            testTick();
         }
 
         // Timeout
