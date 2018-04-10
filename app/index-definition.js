@@ -99,9 +99,9 @@ function ensurePort(server) {
 const keys = {
     is_primary: (val) => !!val,
     index_key: (val) => !val ? [] :
-        _.isArrayLike(val) ?
-            Array.from(val).map(normalizeIndexKey) :
-            _.compact([normalizeIndexKey(val)]),
+        _.isString(val) ?
+            _.compact([normalizeIndexKey(val)]) :
+            Array.from(val).map(normalizeIndexKey),
     condition: (val) => IndexDefinition.normalizeCondition(val),
     nodes: function(val) {
         this.nodes = val;
@@ -177,7 +177,7 @@ export class IndexDefinition extends IndexDefinitionBase {
      * Apply overrides to the index definition
      *
      * @param {*} override
-     * @param {?boolean} applyMissing Overrwrite values even if they are
+     * @param {?boolean} applyMissing Overwrite values even if they are
      *     missing from the overrides object
      */
     applyOverride(override, applyMissing) {

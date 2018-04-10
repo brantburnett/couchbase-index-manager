@@ -4,6 +4,7 @@
         "**/.git": true,
         "**/.DS_Store": true,
         "dist/**": true,
+        "testbin/**": true,
         "node_modules/**": true
     }
 }
