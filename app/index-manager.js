@@ -1,4 +1,5 @@
 import {N1qlQuery} from 'couchbase';
+import {extend} from 'lodash';
 
 const WAIT_TICK_INTERVAL = 10000; // in milliseconds
 
@@ -6,6 +7,78 @@ const WAIT_TICK_INTERVAL = 10000; // in milliseconds
  * @callback tickHandler
  * @param {number} milliseconds Milliseconds since the build wait was started
  */
+
+/**
+ * @callback httpResponse
+ * @param {*} err Error or null
+ * @param {*} resp HTTP response
+ * @param {*} strBuffer Response data as a string
+ */
+
+ /** Helper function to read HTTP responses
+  *
+  * @param {httpResponse} callback Callback to receive the response
+  * @return {function} HTTP response handler to attach to the reponse event
+  */
+function _respRead(callback) {
+    return function(resp) {
+      resp.setEncoding('utf8');
+      let strBuffer = '';
+      resp.on('data', function(data) {
+        strBuffer += data;
+      });
+      resp.on('end', function() {
+        callback(null, resp, strBuffer);
+      });
+      resp.on('error', function(err) {
+        callback(err, resp, null);
+      });
+    };
+}
+
+/** Extension methods injected into BucketManager */
+const extensions = {
+    cbim_getIndexStatus: function(callback) {
+        this._mgmtRequest('indexStatus', 'GET', (err, httpReq) => {
+            if (err) {
+                return callback(err, null);
+            }
+
+            httpReq.on('error', callback);
+            httpReq.on('response', _respRead((err, resp, data) => {
+                if (err) {
+                    return callback(err);
+                }
+
+                if (resp.statusCode !== 200) {
+                    let errData = null;
+                    try {
+                        errData = JSON.parse(data);
+                    } catch (e) {
+                        // ignore
+                    }
+
+                    if (!errData) {
+                        callback(new Error(
+                            'operation failed (' + resp.statusCode +')'), null);
+                        return;
+                    }
+
+                    callback(new Error(errData.reason), null);
+                    return;
+                }
+
+                let indexStatusData = JSON.parse(data);
+                let indexStatuses = indexStatusData.indexes.filter((index) => {
+                    return index.bucket === this._bucket._name;
+                });
+
+                callback(null, indexStatuses);
+            }));
+            httpReq.end();
+        });
+    },
+};
 
 /**
  * Manages Couchbase indexes
@@ -24,13 +97,15 @@ export class IndexManager {
         this.bucket = bucket;
         this.manager = bucket.manager();
         this.is4XCluster = is4XCluster;
+
+        extend(this.manager, extensions);
     }
 
     /**
      * @return {Promise<array>} List of couchbase indexes in the bucket
      */
-    getIndexes() {
-        return new Promise((resolve, reject) => {
+    async getIndexes() {
+        let indexes = await new Promise((resolve, reject) => {
             this.manager.getIndexes((err, indexes) => {
                 if (err) {
                     reject(err);
@@ -39,6 +114,28 @@ export class IndexManager {
                 }
             });
         });
+
+        // Get additional info from the index status API
+        let statuses = await new Promise((resolve, reject) => {
+            this.manager.cbim_getIndexStatus((err, statuses) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(statuses);
+                }
+            });
+        });
+
+        // Apply hosts from index status API to index information
+        statuses.forEach((status) => {
+            let index = indexes.find((index) => index.name === status.index);
+            if (index) {
+                index.nodes = status.hosts;
+                index.num_replica = status.hosts.length - 1;
+            }
+        });
+
+        return indexes;
     }
 
     /**
@@ -48,6 +145,30 @@ export class IndexManager {
      */
     createIndex(statement) {
         return new Promise((resolve, reject) => {
+            this.bucket.query(N1qlQuery.fromString(statement), (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    /**
+     * Moves index replicas been nodes
+     * @param {string} indexName
+     * @param {array.string} nodes
+     * @return {Promise}
+     */
+    moveIndex(indexName, nodes) {
+        return new Promise((resolve, reject) => {
+            let statement = `ALTER INDEX \`${indexName}\` WITH `;
+            statement += JSON.stringify({
+                action: 'move',
+                nodes: nodes,
+            });
+
             this.bucket.query(N1qlQuery.fromString(statement), (err) => {
                 if (err) {
                     reject(err);

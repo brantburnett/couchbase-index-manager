@@ -39,6 +39,8 @@ import {DropIndexMutation} from './drop-index-mutation';
  * @property {array.string} index_key
  * @property {?string} condition
  * @property {?boolean} is_primary
+ * @property {?number} num_replica
+ * @property {?array.string} nodes
  */
 
 /**
