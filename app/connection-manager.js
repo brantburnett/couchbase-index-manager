@@ -64,8 +64,7 @@ export class ConnectionManager {
             this.connectionInfo.bucketName,
             this.connectionInfo.bucketPassword);
 
-        return new IndexManager(this.connectionInfo.bucketName, this.bucket,
-            this.connectionInfo.disableRbac);
+        return new IndexManager(this.connectionInfo.bucketName, this.bucket);
     }
 
     /**

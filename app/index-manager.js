@@ -15,6 +15,12 @@ const WAIT_TICK_INTERVAL = 10000; // in milliseconds
  * @param {*} strBuffer Response data as a string
  */
 
+ /**
+  * @typedef Version
+  * @property {number} major
+  * @property {number} minor
+  */
+
  /** Helper function to read HTTP responses
   *
   * @param {httpResponse} callback Callback to receive the response
@@ -92,11 +98,10 @@ export class IndexManager {
      * @param {CouchbaseBucket} bucket
      * @param {boolean} is4XCluster
      */
-    constructor(bucketName, bucket, is4XCluster) {
+    constructor(bucketName, bucket) {
         this.bucketName = bucketName;
         this.bucket = bucket;
         this.manager = bucket.manager();
-        this.is4XCluster = is4XCluster;
 
         extend(this.manager, extensions);
     }
@@ -258,5 +263,68 @@ export class IndexManager {
                 }
             });
         });
+    }
+
+    /**
+     * Gets the version of the cluster
+     *
+     * @return {Promise.Version}
+     */
+    async getClusterVersion() {
+        // Get additional info from the index status API
+        let clusterCompatibility = await new Promise((resolve, reject) => {
+            this.manager._mgmtRequest('pools/default', 'GET',
+            (err, httpReq) => {
+                if (err) {
+                    return reject(err);
+                }
+
+                httpReq.on('error', reject);
+                httpReq.on('response', _respRead((err, resp, data) => {
+                    if (err) {
+                        return reject(err);
+                    }
+
+                    if (resp.statusCode !== 200) {
+                        let errData = null;
+                        try {
+                            errData = JSON.parse(data);
+                        } catch (e) {
+                            // ignore
+                        }
+
+                        if (!errData) {
+                            reject(new Error(
+                                'operation failed (' + resp.statusCode +')'),
+                                null);
+                            return;
+                        }
+
+                        reject(new Error(errData.reason));
+                        return;
+                    }
+
+                    let poolData = JSON.parse(data);
+                    let minCompatibility = poolData.nodes.reduce(
+                        (accum, value) => {
+                            if (value.clusterCompatibility < accum) {
+                                accum = value.clusterCompatibility;
+                            }
+
+                            return accum;
+                        }, 65535 * 65536);
+
+                    resolve(minCompatibility < 65535 * 65536 ?
+                        minCompatibility :
+                        0);
+                }));
+                httpReq.end();
+            });
+        });
+
+        return {
+            major: Math.floor(clusterCompatibility / 65536),
+            minor: clusterCompatibility & 65535,
+        };
     }
 }
