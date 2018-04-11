@@ -1,5 +1,4 @@
 import {N1qlQuery} from 'couchbase';
-import {extend} from 'lodash';
 
 const WAIT_TICK_INTERVAL = 10000; // in milliseconds
 
@@ -42,18 +41,41 @@ function _respRead(callback) {
     };
 }
 
-/** Extension methods injected into BucketManager */
-const extensions = {
-    cbim_getIndexStatus: function(callback) {
-        this._mgmtRequest('indexStatus', 'GET', (err, httpReq) => {
-            if (err) {
-                return callback(err, null);
-            }
+/**
+ * Manages Couchbase indexes
+ *
+ * @property {!string} bucketName
+ * @property {!boolean} is4XCluster
+ */
+export class IndexManager {
+    /**
+     * @param {string} bucketName
+     * @param {CouchbaseBucket} bucket
+     * @param {Cluster} cluster
+     */
+    constructor(bucketName, bucket, cluster) {
+        this.bucketName = bucketName;
+        this.bucket = bucket;
+        this.manager = bucket.manager();
+        this.clusterManager = cluster.manager();
+    }
 
-            httpReq.on('error', callback);
+    /**
+     * @private
+     * Gets index statuses for the bucket via the cluster manager
+     *
+     * @return {Promise.array}
+     */
+    getIndexStatuses() {
+        return new Promise((resolve, reject) => {
+            let httpReq = this.clusterManager._mgmtRequest(
+                'indexStatus', 'GET');
+
+            httpReq.on('error', reject);
             httpReq.on('response', _respRead((err, resp, data) => {
                 if (err) {
-                    return callback(err);
+                    reject(err);
+                    return;
                 }
 
                 if (resp.statusCode !== 200) {
@@ -65,45 +87,24 @@ const extensions = {
                     }
 
                     if (!errData) {
-                        callback(new Error(
-                            'operation failed (' + resp.statusCode +')'), null);
+                        reject(new Error(
+                            'operation failed (' + resp.statusCode +')'));
                         return;
                     }
 
-                    callback(new Error(errData.reason), null);
+                    reject(new Error(errData.reason));
                     return;
                 }
 
                 let indexStatusData = JSON.parse(data);
                 let indexStatuses = indexStatusData.indexes.filter((index) => {
-                    return index.bucket === this._bucket._name;
+                    return index.bucket === this.bucketName;
                 });
 
-                callback(null, indexStatuses);
+                resolve(indexStatuses);
             }));
             httpReq.end();
         });
-    },
-};
-
-/**
- * Manages Couchbase indexes
- *
- * @property {!string} bucketName
- * @property {!boolean} is4XCluster
- */
-export class IndexManager {
-    /**
-     * @param {string} bucketName
-     * @param {CouchbaseBucket} bucket
-     * @param {boolean} is4XCluster
-     */
-    constructor(bucketName, bucket) {
-        this.bucketName = bucketName;
-        this.bucket = bucket;
-        this.manager = bucket.manager();
-
-        extend(this.manager, extensions);
     }
 
     /**
@@ -121,15 +122,7 @@ export class IndexManager {
         });
 
         // Get additional info from the index status API
-        let statuses = await new Promise((resolve, reject) => {
-            this.manager.cbim_getIndexStatus((err, statuses) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(statuses);
-                }
-            });
-        });
+        let statuses = await this.getIndexStatuses();
 
         // Apply hosts from index status API to index information
         statuses.forEach((status) => {
@@ -273,53 +266,50 @@ export class IndexManager {
     async getClusterVersion() {
         // Get additional info from the index status API
         let clusterCompatibility = await new Promise((resolve, reject) => {
-            this.manager._mgmtRequest('pools/default', 'GET',
-            (err, httpReq) => {
+            let httpReq = this.clusterManager._mgmtRequest(
+                'pools/default', 'GET');
+
+            httpReq.on('error', reject);
+            httpReq.on('response', _respRead((err, resp, data) => {
                 if (err) {
-                    return reject(err);
+                    reject(err);
+                    return;
                 }
 
-                httpReq.on('error', reject);
-                httpReq.on('response', _respRead((err, resp, data) => {
-                    if (err) {
-                        return reject(err);
+                if (resp.statusCode !== 200) {
+                    let errData = null;
+                    try {
+                        errData = JSON.parse(data);
+                    } catch (e) {
+                        // ignore
                     }
 
-                    if (resp.statusCode !== 200) {
-                        let errData = null;
-                        try {
-                            errData = JSON.parse(data);
-                        } catch (e) {
-                            // ignore
-                        }
-
-                        if (!errData) {
-                            reject(new Error(
-                                'operation failed (' + resp.statusCode +')'),
-                                null);
-                            return;
-                        }
-
-                        reject(new Error(errData.reason));
+                    if (!errData) {
+                        reject(new Error(
+                            'operation failed (' + resp.statusCode +')'),
+                            null);
                         return;
                     }
 
-                    let poolData = JSON.parse(data);
-                    let minCompatibility = poolData.nodes.reduce(
-                        (accum, value) => {
-                            if (value.clusterCompatibility < accum) {
-                                accum = value.clusterCompatibility;
-                            }
+                    reject(new Error(errData.reason));
+                    return;
+                }
 
-                            return accum;
-                        }, 65535 * 65536);
+                let poolData = JSON.parse(data);
+                let minCompatibility = poolData.nodes.reduce(
+                    (accum, value) => {
+                        if (value.clusterCompatibility < accum) {
+                            accum = value.clusterCompatibility;
+                        }
 
-                    resolve(minCompatibility < 65535 * 65536 ?
-                        minCompatibility :
-                        0);
-                }));
-                httpReq.end();
-            });
+                        return accum;
+                    }, 65535 * 65536);
+
+                resolve(minCompatibility < 65535 * 65536 ?
+                    minCompatibility :
+                    0);
+            }));
+            httpReq.end();
         });
 
         return {
