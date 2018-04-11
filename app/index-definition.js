@@ -43,6 +43,12 @@ import {DropIndexMutation} from './drop-index-mutation';
  * @property {?array.string} nodes
  */
 
+ /**
+  * @typedef MutationContext
+  * @property {array.CouchbaseIndex} currentIndexes
+  * @property {{major: number, minor: number}} clusterVersion
+  */
+
 /**
  * Ensures that the N1QL identifier is escaped with backticks
  *
@@ -220,18 +226,18 @@ export class IndexDefinition extends IndexDefinitionBase {
     /**
      * Gets the required index mutations, if any, to sync this definition
      *
-     * @param  {array.CouchbaseIndex} currentIndexes
+     * @param  {MutationContext} context
      * @yields {IndexMutation}
      */
-    * getMutations(currentIndexes) {
+    * getMutations(context) {
         if (!this.manual_replica) {
-            let mutation = this.getMutation(currentIndexes);
+            let mutation = this.getMutation(context);
             if (mutation) {
                 yield mutation;
             }
         } else {
             for (let i=0; i<=this.num_replica; i++) {
-                let mutation = this.getMutation(currentIndexes, i);
+                let mutation = this.getMutation(context, i);
                 if (mutation) {
                     yield mutation;
                 }
@@ -241,7 +247,7 @@ export class IndexDefinition extends IndexDefinitionBase {
                 // Handle dropping replicas if the count is lowered
                 for (let i=this.num_replica+1; i<=10; i++) {
                     let mutation = this.getMutation(
-                        currentIndexes, i, true);
+                        context, i, true);
 
                     if (mutation) {
                         yield mutation;
@@ -253,18 +259,18 @@ export class IndexDefinition extends IndexDefinitionBase {
 
     /**
      * @private
-     * @param  {array.CouchbaseIndex} currentIndexes
+     * @param  {MutationContext} context
      * @param  {?number} replicaNum
      * @param  {?boolean} forceDrop Always drop, even if lifecycle.drop = false.
      *     Used for replicas.
      * @return {?IndexMutation}
      */
-    getMutation(currentIndexes, replicaNum, forceDrop) {
+    getMutation(context, replicaNum, forceDrop) {
         let suffix = !replicaNum ?
             '' :
             `_replica${replicaNum}`;
 
-        let currentIndex = currentIndexes.find((index) => {
+        let currentIndex = context.currentIndexes.find((index) => {
             return this.isMatch(index, suffix);
         });
 
