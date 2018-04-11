@@ -94,8 +94,6 @@ export class Sync {
             clusterVersion: await this.manager.getClusterVersion(),
         };
 
-        console.log(mutationContext.clusterVersion);
-
         if (mutationContext.clusterVersion.major < 5) {
             // Force all definitions to use manual replica management
             definitions.forEach((def) => {
