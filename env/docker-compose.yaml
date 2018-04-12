@@ -1,0 +1,88 @@
+version: '3.5'
+services:
+  node1:
+    image: ${CBIMAGE:-couchbase:enterprise-4.6.4}
+    labels:
+      com.centeredgesoftware.cbindexmgr.image: ${CBIMAGE:-couchbase:enterprise-4.6.4}
+    ports:
+      - "8091:8091"
+    command: >
+      /bin/bash -c "
+      set -m;
+      /entrypoint.sh couchbase-server &
+      while true; do
+        sleep 3;
+        /opt/couchbase/bin/couchbase-cli node-init -c node1.cbindexmgr:8091 \
+          -u Administrator -p password \
+          --node-init-hostname=node1.cbindexmgr &&
+        sleep 1 &&
+        /opt/couchbase/bin/couchbase-cli cluster-init \
+          -u Administrator -p password \
+          --cluster-username Administrator --cluster-password password \
+          --cluster-ramsize 512 --cluster-index-ramsize 256 \
+          --services data,index,query && break
+      done;
+      fg 1"
+  node2:
+    image: ${CBIMAGE:-couchbase:enterprise-4.6.4}
+    command: >
+      /bin/bash -c "
+      set -m;
+      /entrypoint.sh couchbase-server &
+      while true; do
+        sleep 3;
+        /opt/couchbase/bin/couchbase-cli node-init -c node2.cbindexmgr:8091 \
+          -u Administrator -p password \
+          --node-init-hostname=node2.cbindexmgr && break
+      done;
+      fg 1"
+  node3:
+    image: ${CBIMAGE:-couchbase:enterprise-4.6.4}
+    command: >
+      /bin/bash -c "
+      set -m;
+      /entrypoint.sh couchbase-server &
+      while true; do
+        sleep 3;
+        /opt/couchbase/bin/couchbase-cli node-init -c node3.cbindexmgr:8091 \
+          -u Administrator -p password \
+          --node-init-hostname=node3.cbindexmgr && break
+      done;
+      fg 1"
+  startup:
+    image: ${CBIMAGE:-couchbase:enterprise-4.6.4}
+    depends_on:
+      - node1
+      - node2
+      - node3
+    working_dir: /opt/couchbase/bin
+    command: >
+      /bin/bash -c "
+      while true; do
+        sleep 3;
+        ./couchbase-cli server-add -c node1.cbindexmgr -u Administrator -p password \
+          --server-add node2.cbindexmgr \
+          --server-add-username Administrator --server-add-password password \
+          --services data,index,query && break
+      done;
+      while true; do
+        sleep 3;
+        ./couchbase-cli server-add -c node1.cbindexmgr -u Administrator -p password \
+          --server-add node3.cbindexmgr \
+          --server-add-username Administrator --server-add-password password \
+          --services data,index,query && break
+      done;
+      while true; do
+        sleep 3;
+        ./couchbase-cli rebalance -c node1.cbindexmgr \
+          -u Administrator -p password && break
+      done;
+      while true; do
+        sleep 3;
+        ./cbdocloader -n node1.cbindexmgr -u Administrator -p password \
+          -b beer-sample -s 100 /opt/couchbase/samples/beer-sample.zip && break
+      done
+      "
+networks:
+  default:
+    name: cbindexmgr

@@ -33,5 +33,6 @@ post_process: |
 ---
 type: nodeMap
 map:
-  node1: 172.21.0.2
-  node2: 172.21.0.3
+  node1: node1.cbindexmgr
+  node2: node2.cbindexmgr
+  node3: node3.cbindexmgr

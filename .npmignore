@@ -12,3 +12,5 @@ Dockerfile
 .editorconfig
 .travis.yml
 /scripts
+/testbin
+/env
