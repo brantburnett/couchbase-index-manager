@@ -8,6 +8,7 @@ import {prompt} from 'inquirer';
 import {Plan} from './plan';
 import {IndexDefinition} from './index-definition';
 import {NodeMap} from './node-map';
+import {FeatureVersions} from './feature-versions';
 
 // Ensure that promisify is available on Node 6
 require('util.promisify').shim();
@@ -94,7 +95,7 @@ export class Sync {
             clusterVersion: await this.manager.getClusterVersion(),
         };
 
-        if (mutationContext.clusterVersion.major < 5) {
+        if (!FeatureVersions.autoReplicas(mutationContext.clusterVersion)) {
             // Force all definitions to use manual replica management
             definitions.forEach((def) => {
                 def.manual_replica = true;

@@ -2,6 +2,7 @@
  * Abstract base class for index mutations
  * @abstract
  *
+ * @property {number} phase Phase for this mutation, default = 1
  * @private @property {IndexDefinition} definition
  * @private @property {string} name Name of the index to mutate,
  *     may be different than the name in the definition
@@ -14,6 +15,7 @@ export class IndexMutation {
     constructor(definition, name) {
         this.definition = definition;
         this.name = name || definition.name;
+        this.phase = 1;
     }
 
     /**

@@ -126,10 +126,19 @@ export class IndexManager {
 
         // Apply hosts from index status API to index information
         statuses.forEach((status) => {
-            let index = indexes.find((index) => index.name === status.index);
+            // remove (replica X) from the end of the index name
+            let indexName = /^([^\s]*)/.exec(status.index)[1];
+
+            let index = indexes.find((index) => index.name === indexName);
             if (index) {
-                index.nodes = status.hosts;
-                index.num_replica = status.hosts.length - 1;
+                if (!index.nodes) {
+                    index.nodes = [];
+                }
+
+                // add any hosts listed to index info
+                index.nodes.push(...status.hosts);
+
+                index.num_replica = index.nodes.length - 1;
             }
         });
 
@@ -161,7 +170,9 @@ export class IndexManager {
      */
     moveIndex(indexName, nodes) {
         return new Promise((resolve, reject) => {
-            let statement = `ALTER INDEX \`${indexName}\` WITH `;
+            let statement = 'ALTER INDEX ' +
+                `\`${this.bucketName}\`.\`${indexName}\`` +
+                ' WITH ';
             statement += JSON.stringify({
                 action: 'move',
                 nodes: nodes,

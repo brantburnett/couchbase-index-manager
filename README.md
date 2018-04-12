@@ -160,15 +160,15 @@ Replicas are emulated on Couchbase Server 4.X by creating multiple indexes.  If 
 
 This approach may also be enabled on Couchbase Server 5.X by settings `manual_replica` to true on the index definition.
 
-Note that the `nodes` list is only respected during index creation, indexes will not be moved between nodes if they already exist.
+During updates, changes to the `nodes` list may result in indexes being moved from one node to another. So long as there is at least one replica this is considered a safe operation, as each replica will be moved independently leaving other replicas available to serve requests.  Changes to the order of the node list are ignored, only adding or removing nodes results in a change.
 
 ## Automatic Index Replica Management
 
-On Couchbase Server 5.X, automatic index replica managemnet is the default.  In this case, replicas are managed by Couchbase Server directly, rather than by couchbase-index-manager.
+On Couchbase Server 5.X, automatic index replica management is the default.  In this case, replicas are managed by Couchbase Server directly, rather than by couchbase-index-manager.
 
-Currently, it isn't possible to detect replicas via queries to "system:indexes".  Therefore, `num_replica` is only respected during index creation.  Changes to `num_replica` on existing indexes will be ignored.
+Note that for Couchbase Server 5.0 and 5.1, the `nodes` list is only respected during index creation. Indexes will not be moved between nodes if they already exist. Beginning with Couchbase Server 5.5 an ALTER INDEX command will be used to move replicas between nodes.
 
-Note that the `nodes` list is only respected during index creation, indexes will not be moved between nodes if they already exist.
+Because ALTER INDEX cannot currently change the number of replicas, changes to `num_replica` or the number of nodes in `nodes` is an unsafe change that will drop and recreate the index.
 
 ## Docker Image
 
