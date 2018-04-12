@@ -1,8 +1,13 @@
 import {use, expect} from 'chai';
 import chaiArrays from 'chai-arrays';
+import chaiThings from 'chai-things';
 import {IndexDefinition} from '../app/index-definition';
+import {UpdateIndexMutation} from '../app/update-index-mutation';
+import {CreateIndexMutation} from '../app/create-index-mutation';
+import {MoveIndexMutation} from '../app/move-index-mutation';
 
 use(chaiArrays);
+use(chaiThings);
 
 describe('ctor', function() {
     it('applies name', function() {
@@ -370,5 +375,431 @@ describe('applyOverride', function() {
             .to.have.property('initial', 1);
         expect(def.lifecycle)
             .to.have.property('drop', true);
+    });
+});
+
+describe('getMutation manual replica node changes', function() {
+    it('performs node move as an update', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            manual_replica: true,
+            nodes: ['a', 'b'],
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091'],
+                },
+                {
+                    name: 'test_replica1',
+                    index_key: ['`key`'],
+                    nodes: ['c:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(UpdateIndexMutation)
+            .and.to.include({
+                name: 'test_replica1',
+                phase: 1,
+            })
+            .and.to.satisfy((m) => m.isSafe());
+    });
+
+    it('ignores node swap', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            manual_replica: true,
+            nodes: ['a', 'b'],
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['b:8091'],
+                },
+                {
+                    name: 'test_replica1',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(0);
+    });
+
+    it('creates new replicas first', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            manual_replica: true,
+            nodes: ['a', 'b', 'c'],
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['d:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(3);
+
+        let updates = mutations.filter((m) => m instanceof UpdateIndexMutation);
+        expect(updates)
+            .to.have.length(1);
+        expect(updates[0])
+            .and.to.include({
+                name: 'test',
+                phase: 2,
+            })
+            .and.to.satisfy((m) => m.isSafe());
+
+        let creates = mutations.filter((m) => m instanceof CreateIndexMutation);
+        expect(creates)
+            .to.have.length(2);
+        for (let create of creates) {
+            expect(create)
+                .to.include({
+                    phase: 1,
+                });
+        }
+    });
+});
+
+describe('getMutation automatic replica node changes', function() {
+    it('performs single move mutation', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            nodes: ['a', 'b'],
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091', 'c:8091'],
+                    num_replica: 1,
+                },
+            ],
+            clusterVersion: {
+                major: 5,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(MoveIndexMutation)
+            .and.to.include({
+                name: 'test',
+                phase: 1,
+                unsupported: false,
+            });
+    });
+
+    it('returns unsupported for 5.1 cluster', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            nodes: ['a', 'b'],
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091'],
+                },
+                {
+                    name: 'test_replica1',
+                    index_key: ['`key`'],
+                    nodes: ['c:8091'],
+                    num_replica: 0,
+                },
+            ],
+            clusterVersion: {
+                major: 5,
+                minor: 1,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(MoveIndexMutation)
+            .and.to.include({
+                name: 'test',
+                phase: 1,
+                unsupported: true,
+            });
+    });
+
+    it('ignores node swap', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            nodes: ['a', 'b'],
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['b:8091', 'a:8091'],
+                    num_replica: 1,
+                },
+            ],
+            clusterVersion: {
+                major: 5,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(0);
+    });
+
+    it('num_replica change gives unsafe update', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            num_replica: 2,
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091', 'b:8091'],
+                    num_replica: 1,
+                },
+            ],
+            clusterVersion: {
+                major: 5,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(UpdateIndexMutation)
+            .and.to.include({
+                name: 'test',
+                phase: 1,
+            })
+            .and.to.satisfy((m) => !m.isSafe());
+    });
+
+    it('node length change gives unsafe update', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            nodes: ['a'],
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091', 'b:8091'],
+                    num_replica: 1,
+                },
+            ],
+            clusterVersion: {
+                major: 5,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(UpdateIndexMutation)
+            .and.to.include({
+                name: 'test',
+                phase: 1,
+            })
+            .and.to.satisfy((m) => !m.isSafe());
+    });
+});
+
+describe('normalizeNodeList', function() {
+    describe('auto replica', function() {
+        it('sorts node lists', function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                nodes: ['b', 'c', 'a'],
+            });
+
+            def.normalizeNodeList([]);
+
+            expect(def.nodes)
+                .to.be.sorted();
+        });
+
+        it('adds port numbers', function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                nodes: ['a', 'b', 'c'],
+            });
+
+            def.normalizeNodeList([]);
+
+            expect(def.nodes)
+                .to.be.equalTo(['a:8091', 'b:8091', 'c:8091']);
+        });
+
+        it('ignores defined port numbers', function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                nodes: ['a:18091', 'b', 'c'],
+            });
+
+            def.normalizeNodeList([]);
+
+            expect(def.nodes)
+                .to.be.equalTo(['a:18091', 'b:8091', 'c:8091']);
+        });
+    });
+
+    describe('manual replica', function() {
+        it('sorts node lists', function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                manual_replica: true,
+                nodes: ['b', 'c', 'a'],
+            });
+
+            def.normalizeNodeList([]);
+
+            expect(def.nodes)
+                .to.be.sorted();
+        });
+
+        it('adds port numbers', function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                manual_replica: true,
+                nodes: ['a', 'b', 'c'],
+            });
+
+            def.normalizeNodeList([]);
+
+            expect(def.nodes)
+                .to.be.equalTo(['a:8091', 'b:8091', 'c:8091']);
+        });
+
+        it('ignores defined port numbers', function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                manual_replica: true,
+                nodes: ['a:18091', 'b', 'c'],
+            });
+
+            def.normalizeNodeList([]);
+
+            expect(def.nodes)
+                .to.be.equalTo(['a:18091', 'b:8091', 'c:8091']);
+        });
+
+        it('sorts to match replicas', function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                manual_replica: true,
+                nodes: ['a', 'b', 'c'],
+            });
+
+            def.normalizeNodeList([
+                {
+                    name: 'test',
+                    nodes: ['b:8091'],
+                },
+                {
+                    name: 'test_replica1',
+                    nodes: ['c:8091'],
+                },
+                {
+                    name: 'test_replica2',
+                    nodes: ['a:8091'],
+                },
+            ]);
+
+            expect(def.nodes)
+                .to.be.equalTo(['b:8091', 'c:8091', 'a:8091']);
+        });
+
+        it('missing replicas get remaining nodes', function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                manual_replica: true,
+                nodes: ['a', 'b', 'c'],
+            });
+
+            def.normalizeNodeList([
+                {
+                    name: 'test',
+                    nodes: ['b:8091'],
+                },
+            ]);
+
+            expect(def.nodes)
+                .to.be.equalTo(['b:8091', 'a:8091', 'c:8091']);
+        });
+
+        it('missing replica in middle gets remaining node', function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                manual_replica: true,
+                nodes: ['a', 'b', 'c'],
+            });
+
+            def.normalizeNodeList([
+                {
+                    name: 'test',
+                    nodes: ['b:8091'],
+                },
+                {
+                    name: 'test_replica2',
+                    nodes: ['a:8091'],
+                },
+            ]);
+
+            expect(def.nodes)
+                .to.be.equalTo(['b:8091', 'c:8091', 'a:8091']);
+        });
     });
 });

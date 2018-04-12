@@ -3,6 +3,8 @@ import {IndexDefinitionBase} from './index-definition-base';
 import {CreateIndexMutation} from './create-index-mutation';
 import {UpdateIndexMutation} from './update-index-mutation';
 import {DropIndexMutation} from './drop-index-mutation';
+import {MoveIndexMutation} from './move-index-mutation';
+import {FeatureVersions} from './feature-versions';
 
 /**
  * @typedef LifecycleHash
@@ -46,7 +48,7 @@ import {DropIndexMutation} from './drop-index-mutation';
  /**
   * @typedef MutationContext
   * @property {array.CouchbaseIndex} currentIndexes
-  * @property {{major: number, minor: number}} clusterVersion
+  * @property {?{major: number, minor: number}} clusterVersion
   */
 
 /**
@@ -230,31 +232,29 @@ export class IndexDefinition extends IndexDefinitionBase {
      * @yields {IndexMutation}
      */
     * getMutations(context) {
+        this.normalizeNodeList(context.currentIndexes);
+
+        let mutations = [];
+
         if (!this.manual_replica) {
-            let mutation = this.getMutation(context);
-            if (mutation) {
-                yield mutation;
-            }
+            mutations.push(...this.getMutation(context));
         } else {
             for (let i=0; i<=this.num_replica; i++) {
-                let mutation = this.getMutation(context, i);
-                if (mutation) {
-                    yield mutation;
-                }
+                mutations.push(...this.getMutation(context, i));
             }
 
             if (!this.is_primary) {
                 // Handle dropping replicas if the count is lowered
                 for (let i=this.num_replica+1; i<=10; i++) {
-                    let mutation = this.getMutation(
-                        context, i, true);
-
-                    if (mutation) {
-                        yield mutation;
-                    }
+                    mutations.push(...this.getMutation(
+                        context, i, true));
                 }
             }
         }
+
+        IndexDefinition.phaseMutations(mutations);
+
+        yield* mutations;
     }
 
     /**
@@ -263,9 +263,9 @@ export class IndexDefinition extends IndexDefinitionBase {
      * @param  {?number} replicaNum
      * @param  {?boolean} forceDrop Always drop, even if lifecycle.drop = false.
      *     Used for replicas.
-     * @return {?IndexMutation}
+     * @yields {IndexMutation}
      */
-    getMutation(context, replicaNum, forceDrop) {
+    * getMutation(context, replicaNum, forceDrop) {
         let suffix = !replicaNum ?
             '' :
             `_replica${replicaNum}`;
@@ -279,18 +279,40 @@ export class IndexDefinition extends IndexDefinitionBase {
         if (!currentIndex) {
             // Index isn't found
             if (!drop) {
-                return new CreateIndexMutation(this, this.name + suffix,
+                yield new CreateIndexMutation(this, this.name + suffix,
                     this.getWithClause(replicaNum));
             }
         } else if (drop) {
-            return new DropIndexMutation(this, currentIndex.name);
+            yield new DropIndexMutation(this, currentIndex.name);
         } else if (!this.is_primary && this.requiresUpdate(currentIndex)) {
-            return new UpdateIndexMutation(this, this.name + suffix,
+            yield new UpdateIndexMutation(this, this.name + suffix,
                 this.getWithClause(replicaNum),
                 currentIndex);
-        }
+        } else if (!this.manual_replica && currentIndex.num_replica &&
+            this.num_replica !== currentIndex.num_replica) {
+            // Number of replicas changed for an auto replica index
+            // We must drop and recreate
 
-        return undefined;
+            yield new UpdateIndexMutation(this, this.name + suffix,
+                this.getWithClause(replicaNum),
+                currentIndex);
+        } else if (this.nodes && currentIndex.nodes) {
+            // Check for required node changes
+            currentIndex.nodes.sort();
+
+            if (this.manual_replica) {
+                if (this.nodes[replicaNum] !== currentIndex.nodes[0]) {
+                    yield new UpdateIndexMutation(this, this.name + suffix,
+                        this.getWithClause(replicaNum),
+                        currentIndex);
+                }
+            } else {
+                if (!_.isEqual(this.nodes, currentIndex.nodes)) {
+                    yield new MoveIndexMutation(this, this.name + suffix,
+                        !FeatureVersions.alterIndex(context.clusterVersion));
+                }
+            }
+        }
     }
 
     /**
@@ -332,7 +354,8 @@ export class IndexDefinition extends IndexDefinitionBase {
 
     /**
      * @private
-     * Tests to see if a Couchbase index requires updating
+     * Tests to see if a Couchbase index requires updating,
+     * ignoring node changes which are handled separately.
      *
      * @param {CouchbaseIndex} index
      * @return {boolean}
@@ -399,5 +422,95 @@ export class IndexDefinition extends IndexDefinitionBase {
         }
 
         return condition.replace(/'([^']*)'/g, '"$1"');
+    }
+
+    /**
+     * @private
+     * Apply phases to the collection of index mutations
+     *
+     * @param {array.IndexMutation} mutations
+     */
+    static phaseMutations(mutations) {
+        // All creates should be in phase one
+        // All updates should be in one phase each, after creates
+        // Everything else should be in the last phase
+        // This is relative to each index definition only
+
+        let nextPhase = 1;
+        for (let mutation of mutations) {
+            if (mutation instanceof CreateIndexMutation) {
+                nextPhase = 2;
+                mutation.phase = 1;
+            }
+        }
+
+        for (let mutation of mutations) {
+            if (mutation instanceof UpdateIndexMutation) {
+                mutation.phase = nextPhase;
+                nextPhase += 1;
+            }
+        }
+
+        for (let mutation of mutations) {
+            if (!(mutation instanceof CreateIndexMutation)
+                && !(mutation instanceof UpdateIndexMutation)) {
+                mutation.phase = nextPhase;
+            }
+        }
+    }
+
+    /**
+     * @private
+     * Ensures that the node list has port numbers and is sorted in the same
+     * order as the current indexes.  This allows easy matching of existing
+     * node assignments, reducing reindex load due to minor node shifts.
+     *
+     * @param {array.CouchbaseIndex} currentIndexes
+     */
+    normalizeNodeList(currentIndexes) {
+        if (!this.nodes) {
+            return;
+        }
+
+        this.nodes = this.nodes.map(ensurePort);
+        this.nodes.sort();
+
+        if (this.manual_replica) {
+            // We only care about specific node mappings for manual replicas
+            // For auto replicas we let Couchbase handle it
+
+            let newNodeList = [];
+            let unused = _.clone(this.nodes);
+
+            for (let replicaNum=0; replicaNum<=this.num_replica; replicaNum++) {
+                let suffix = !replicaNum ?
+                    '' :
+                    `_replica${replicaNum}`;
+
+                let index = currentIndexes.find((index) => {
+                    return this.isMatch(index, suffix);
+                });
+
+                if (index && index.nodes) {
+                    let unusedIndex = unused.findIndex(
+                        (name) => name === index.nodes[0]);
+
+                    if (unusedIndex >= 0) {
+                        newNodeList[replicaNum] =
+                            unused.splice(unusedIndex, 1)[0];
+                    }
+                }
+            }
+
+            // Fill in the remaining nodes that didn't have a match
+            for (let replicaNum=0; replicaNum<=this.num_replica; replicaNum++) {
+                if (!newNodeList[replicaNum]) {
+                    newNodeList[replicaNum] =
+                        unused.shift();
+                }
+            }
+
+            this.nodes = newNodeList;
+        }
     }
 }

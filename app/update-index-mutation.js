@@ -44,7 +44,8 @@ export class UpdateIndexMutation extends IndexMutation {
                     `     -> ${this.formatKeys(this.definition)}`));
         }
 
-        if (!isEqual(this.existingIndex.condition, this.definition.condition)) {
+        if (!isEqual(this.existingIndex.condition || '',
+            this.definition.condition || '')) {
             logger.info(
                 chalk.cyanBright(
                     `  Cond: ${this.existingIndex.condition || 'none'}`));
@@ -53,10 +54,17 @@ export class UpdateIndexMutation extends IndexMutation {
                     `     -> ${this.definition.condition || 'none'}`));
         }
 
-        if (this.definition.num_replica > 0) {
+        if (!this.definition.manual_replica &&
+            this.definition.num_replica > 0) {
             logger.info(
                 chalk.cyanBright(
                     `  Repl: ${this.definition.num_replica}`));
+        }
+
+        if (this.definition.nodes && this.existingIndex.nodes &&
+            !isEqual(this.definition.nodes, this.existingIndex.nodes)) {
+            logger.info(chalk.cyanBright(
+                ` Nodes: ${this.definition.nodes.join()}`));
         }
     }
 
@@ -84,6 +92,9 @@ export class UpdateIndexMutation extends IndexMutation {
 
     /** @inheritDoc */
     isSafe() {
-        return false;
+        // Safe if there are multiple replicas
+        // As each update will run in its own phase
+        return this.definition.manual_replica &&
+            this.definition.num_replica > 0;
     }
 }

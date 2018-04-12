@@ -28,7 +28,7 @@ function parseBaseOptions(cmd) {
  */
 function handleAsync(promise) {
     promise.catch((err) => {
-        console.error(chalk.redBright(err));
+        console.error(chalk.redBright(err.stack));
 
         process.exit(1);
     });

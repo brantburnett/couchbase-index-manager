@@ -40,6 +40,7 @@
     "babel-preset-env": "^1.6.1",
     "chai": "^4.1.2",
     "chai-arrays": "^2.0.0",
+    "chai-things": "^0.2.0",
     "del": "^3.0.0",
     "eslint": "^4.18.0",
     "eslint-config-google": "^0.9.1",
@@ -50,9 +51,12 @@
     "gulp-plumber": "^1.2.0",
     "gulp-sourcemaps": "^2.6.4",
     "jasmine": "^3.1.0",
+    "jasmine-co": "^1.2.2",
     "jasmine-console-reporter": "^3.0.0",
     "jasmine-core": "^3.1.0",
     "markdownlint-cli": "^0.7.1",
+    "sinon": "^4.5.0",
+    "sinon-chai": "^3.0.0",
     "source-map-support": "^0.5.4"
   },
   "dependencies": {
