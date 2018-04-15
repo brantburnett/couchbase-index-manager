@@ -61,10 +61,12 @@ export class UpdateIndexMutation extends IndexMutation {
                     `  Repl: ${this.definition.num_replica}`));
         }
 
-        if (this.definition.nodes && this.existingIndex.nodes &&
-            !isEqual(this.definition.nodes, this.existingIndex.nodes)) {
+        if (this.withClause.nodes && this.existingIndex.nodes &&
+            !isEqual(this.withClause.nodes, this.existingIndex.nodes)) {
             logger.info(chalk.cyanBright(
-                ` Nodes: ${this.definition.nodes.join()}`));
+                ` Nodes: ${this.existingIndex.nodes.join()}`));
+            logger.info(chalk.cyanBright(
+                `    ->: ${this.withClause.nodes.join()}`));
         }
     }
 
