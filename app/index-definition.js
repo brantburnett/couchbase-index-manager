@@ -66,25 +66,6 @@ function ensureEscaped(identifier) {
 }
 
 /**
- * Ensures that the N1QL identifier is escaped with backticks, unless it's a
- *     function call or array subquery
- *
- * @param  {!string} identifier
- * @return {!string}
- */
-function normalizeIndexKey(identifier) {
-    identifier = identifier.trim().replace(/\s{2,}/g, ' ');
-
-    if (identifier.match(/^(\(?\s*DISTINCT|ALL)\s*\(?\s*ARRAY|\(/i)) {
-        // Contains parentheses or starts with ALL ARRAY or DISTINCT ARRAY
-        // Don't escape
-        return identifier;
-    } else {
-        return ensureEscaped(identifier);
-    }
-}
-
-/**
  * Ensures that a server name has a port number appended, defaults to 8091
  * @param  {string} server
  * @return {string}
@@ -110,9 +91,9 @@ const keys = {
     is_primary: (val) => !!val,
     index_key: (val) => !val ? [] :
         _.isString(val) ?
-            _.compact([normalizeIndexKey(val)]) :
-            Array.from(val).map(normalizeIndexKey),
-    condition: (val) => IndexDefinition.normalizeCondition(val),
+            _.compact([val]) :
+            Array.from(val),
+    condition: (val) => val || '',
     nodes: function(val) {
         this.nodes = val;
 
@@ -366,14 +347,51 @@ export class IndexDefinition extends IndexDefinitionBase {
     }
 
     /**
+     * Normalizes the index definition using Couchbase standards
+     * for condition and index_key.
+     *
+     * @param  {IndexManager} manager
+     */
+    async normalize(manager) {
+        if (this.is_primary) {
+            // Not required for primary index
+            return;
+        }
+
+        // Calling explain for creating an index returns a plan
+        // in which the keys and condition have been normalizaed for us
+        // However, we must use a special index name to prevent rejection
+        // due to name conflicts.
+
+        let statement =
+            this.getCreateStatement(manager.bucketName, '__cbim_normalize');
+
+        let plan;
+        try {
+            plan = await manager.getQueryPlan(statement);
+        } catch (e) {
+            throw new Error(
+                `Invalid index definition for ${this.name}: ${e.message}`);
+        }
+
+        this.index_key = (plan.keys || []).map((key) => key.expr);
+        this.condition = plan.where || '';
+    }
+
+    /**
      * Formats a CREATE INDEX query which makes this index
      *
      * @param {string} bucketName
-     * @param {?string} indexName
-     * @param {?Object<string, *>} withClause
+     * @param {string} [indexName]
+     * @param {Object<string, *>} [withClause]
      * @return {string}
      */
     getCreateStatement(bucketName, indexName, withClause) {
+        if (withClause === undefined && !_.isString(indexName)) {
+            withClause = indexName;
+            indexName = undefined;
+        }
+
         indexName = ensureEscaped(indexName || this.name);
 
         let statement;
@@ -407,21 +425,6 @@ export class IndexDefinition extends IndexDefinitionBase {
         statement += ' WITH ' + JSON.stringify(withClause);
 
         return statement;
-    }
-
-    /**
-     * @private
-     * Limited subset of normalizations on conditions
-     *
-     * @param {string} condition
-     * @return {string}
-     */
-    static normalizeCondition(condition) {
-        if (!condition) {
-            return '';
-        }
-
-        return condition.replace(/'([^']*)'/g, '"$1"');
     }
 
     /**

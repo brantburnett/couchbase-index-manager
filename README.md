@@ -146,9 +146,7 @@ map:
 
 ## Updating Indexes
 
-It is important that couchbase-index-manager be able to recognize when indexes are updated.  Couchbase Server performs certain normalizations on both index_key and condition, meaning that the values in Couchbase may be slightly different than the values submitted when the index is created.
-
-Therefore, it is important that the definition files be created with normalization in mind.  Make sure the definitions include the already normalized version of the keys and condition, otherwise couchbase-index-manager may drop and recreate the index on each run.
+Updating existing indexes is currently an unsafe operation in most cases.  This is because the index must be dropped and recreated, so there is some period of time when the index is unavailable for queries.  The exception is if you have at least 1 replica configured and `manual_replica` is `true`.  In this case, the replicas are replaced one at a time so at least one replica is always available.
 
 ## Dropping Indexes
 

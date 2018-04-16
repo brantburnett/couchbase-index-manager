@@ -102,6 +102,11 @@ export class Sync {
             });
         }
 
+        // Normalize the definitions before testing for mutations
+        for (let def of definitions) {
+            await def.normalize(this.manager);
+        }
+
         let mutations = compact(flatten(
             definitions.map((definition) => Array.from(definition.getMutations(
                 mutationContext)))));

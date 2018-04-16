@@ -1,6 +1,8 @@
 import {use, expect} from 'chai';
 import chaiArrays from 'chai-arrays';
 import chaiThings from 'chai-things';
+import sinonChai from 'sinon-chai';
+import {stub} from 'sinon';
 import {IndexDefinition} from '../app/index-definition';
 import {UpdateIndexMutation} from '../app/update-index-mutation';
 import {CreateIndexMutation} from '../app/create-index-mutation';
@@ -8,6 +10,7 @@ import {MoveIndexMutation} from '../app/move-index-mutation';
 
 use(chaiArrays);
 use(chaiThings);
+use(sinonChai);
 
 describe('ctor', function() {
     it('applies name', function() {
@@ -27,7 +30,7 @@ describe('ctor', function() {
         });
 
         expect(def.index_key)
-            .to.be.equalTo(['`key`']);
+            .to.be.equalTo(['key']);
     });
 
     it('applies index_key array', function() {
@@ -37,37 +40,7 @@ describe('ctor', function() {
         });
 
         expect(def.index_key)
-            .to.be.equalTo(['`key1`', '`key2`']);
-    });
-
-    it('doesn\'t alter already escaped index_keys', function() {
-        let def = new IndexDefinition({
-            name: 'test',
-            index_key: ['`key1`', '`key2`'],
-        });
-
-        expect(def.index_key)
-            .to.be.equalTo(['`key1`', '`key2`']);
-    });
-
-    it('doesn\'t alter function index_keys', function() {
-        let def = new IndexDefinition({
-            name: 'test',
-            index_key: ['STR_TO_MILLIS(`key`)'],
-        });
-
-        expect(def.index_key)
-            .to.be.equalTo(['STR_TO_MILLIS(`key`)']);
-    });
-
-    it('doesn\'t alter array index_keys', function() {
-        let def = new IndexDefinition({
-            name: 'test',
-            index_key: ['DISTINCT ARRAY p FOR p IN `key` END'],
-        });
-
-        expect(def.index_key)
-            .to.be.equalTo(['DISTINCT ARRAY p FOR p IN `key` END']);
+            .to.be.equalTo(['key1', 'key2']);
     });
 
     it('primary key with index_key throws error', function() {
@@ -102,17 +75,6 @@ describe('ctor', function() {
             index_key: [],
         }))
             .to.throw();
-    });
-
-    it('condition is normalized to double quotes', function() {
-        let def = new IndexDefinition({
-            name: 'test',
-            index_key: 'key',
-            condition: '(`type` = \'predicate\')',
-        });
-
-        expect(def.condition)
-            .to.equal('(`type` = "predicate")');
     });
 
     it('node list sets num_replica', function() {
@@ -198,7 +160,7 @@ describe('applyOverride', function() {
         });
 
         expect(def.index_key)
-            .to.be.equalTo(['`key2`']);
+            .to.be.equalTo(['key2']);
     });
 
     it('applies index_key array', function() {
@@ -212,7 +174,7 @@ describe('applyOverride', function() {
         });
 
         expect(def.index_key)
-            .to.be.equalTo(['`key3`', '`key4`']);
+            .to.be.equalTo(['key3', 'key4']);
     });
 
     it('primary key with index_key throws error', function() {
@@ -382,7 +344,7 @@ describe('getMutation manual replica node changes', function() {
     it('performs node move as an update', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             manual_replica: true,
             nodes: ['a', 'b'],
         });
@@ -416,7 +378,7 @@ describe('getMutation manual replica node changes', function() {
     it('ignores node swap', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             manual_replica: true,
             nodes: ['a', 'b'],
         });
@@ -443,7 +405,7 @@ describe('getMutation manual replica node changes', function() {
     it('creates new replicas first', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             manual_replica: true,
             nodes: ['a', 'b', 'c'],
         });
@@ -487,7 +449,7 @@ describe('getMutation automatic replica node changes', function() {
     it('performs single move mutation', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             nodes: ['a', 'b'],
         });
 
@@ -520,7 +482,7 @@ describe('getMutation automatic replica node changes', function() {
     it('returns unsupported for 5.1 cluster', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             nodes: ['a', 'b'],
         });
 
@@ -558,7 +520,7 @@ describe('getMutation automatic replica node changes', function() {
     it('ignores node swap', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             nodes: ['a', 'b'],
         });
 
@@ -802,4 +764,125 @@ describe('normalizeNodeList', function() {
                 .to.be.equalTo(['b:8091', 'c:8091', 'a:8091']);
         });
     });
+});
+
+describe('normalize', function() {
+    it('does nothing for primary index', async function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            is_primary: true,
+        });
+
+        let getQueryPlan = stub().returns(Promise.resolve({}));
+
+        let manager = {
+            bucketName: 'test',
+            getQueryPlan: getQueryPlan,
+        };
+
+        await def.normalize(manager);
+
+        expect(getQueryPlan)
+            .to.not.be.called;
+    });
+
+    it('wraps query errors', async function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+        });
+
+        let getQueryPlan = stub().returns(Promise.reject(
+            new Error('msg test')));
+
+        let manager = {
+            bucketName: 'test',
+            getQueryPlan: getQueryPlan,
+        };
+
+        try {
+            await def.normalize(manager);
+
+            throw new Error('No exception encountered');
+        } catch (e) {
+            expect(e.message)
+                .to.equal(
+                    `Invalid index definition for ${def.name}: msg test`);
+        }
+    });
+
+    it('replaces keys', async function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            condition: 'type = \'beer\'',
+        });
+
+        let getQueryPlan = stub().returns(Promise.resolve({
+            keys: [
+                {expr: '`key`'},
+            ],
+            where: '`type` = "beer"',
+        }));
+
+        let manager = {
+            bucketName: 'test',
+            getQueryPlan: getQueryPlan,
+        };
+
+        await def.normalize(manager);
+
+        expect(def.index_key)
+            .to.be.equalTo(['`key`']);
+    });
+
+    it('replaces condition', async function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            condition: 'type = \'beer\'',
+        });
+
+        let getQueryPlan = stub().returns(Promise.resolve({
+            keys: [
+                {expr: '`key`'},
+            ],
+            where: '`type` = "beer"',
+        }));
+
+        let manager = {
+            bucketName: 'test',
+            getQueryPlan: getQueryPlan,
+        };
+
+        await def.normalize(manager);
+
+        expect(def.condition)
+            .to.equal('`type` = "beer"');
+    });
+
+    it('plan without condition leaves condition as empty string',
+        async function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                condition: '',
+            });
+
+            let getQueryPlan = stub().returns(Promise.resolve({
+                keys: [
+                    {expr: '`key`'},
+                ],
+            }));
+
+            let manager = {
+                bucketName: 'test',
+                getQueryPlan: getQueryPlan,
+            };
+
+            await def.normalize(manager);
+
+            expect(def.condition)
+                .to.equal('');
+        });
 });
