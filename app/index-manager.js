@@ -1,4 +1,5 @@
 import {N1qlQuery} from 'couchbase';
+import {isString} from 'lodash';
 
 const WAIT_TICK_INTERVAL = 10000; // in milliseconds
 
@@ -327,5 +328,36 @@ export class IndexManager {
             major: Math.floor(clusterCompatibility / 65536),
             minor: clusterCompatibility & 65535,
         };
+    }
+
+    /**
+     * Uses EXPLAIN to get a query plan for a statement
+     * @param  {string} statement
+     * @return {*}
+     */
+    async getQueryPlan(statement) {
+        statement = 'EXPLAIN ' + statement;
+
+        let explain = await new Promise((resolve, reject) => {
+            let query = N1qlQuery.fromString(statement);
+            this.bucket.query(query, (err, data) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(data);
+                }
+            });
+        });
+
+        let plan = explain[0].plan;
+
+        if (plan && plan.keys) {
+            // Couchbase 5.0 started nesting within expr property
+            // so normalize the returned object
+            plan.keys = plan.keys.map((key) =>
+                isString(key) ? {expr: key} : key);
+        }
+
+        return plan;
     }
 }

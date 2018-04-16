@@ -4,13 +4,13 @@ is_primary: true
 name: BeersByAbv
 index_key:
 - abv
-condition: (`type` = 'beer')
+condition: type = 'beer'
 num_replica: 0
 ---
 name: BeersByIbu
 index_key:
 - ibu
-condition: (`type` = 'beer')
+condition: type = 'beer'
 num_replica: 0
 ---
 name: DocsByType
@@ -19,8 +19,8 @@ index_key:
 ---
 name: BreweriesByAddress
 index_key:
-- (distinct (array `p` for `p` in `address` end))
-condition: (`type` = 'brewery')
+- distinct array p for p in address end
+condition: type = 'brewery'
 num_replica: 2
 ---
 type: override # Overrides valus set previously for this index
