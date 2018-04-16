@@ -40,5 +40,5 @@ if ($version) {
     }
 }
 
-docker run -it --network cbindexmgr -v "$PSScriptRoot\..\example:/example:ro" -w /example cbindexmgr-testexec $effectiveParams
+docker run --rm -it --network cbindexmgr -v "$PSScriptRoot\..\example:/example:ro" -w /example cbindexmgr-testexec $effectiveParams
 exit $LASTEXITCODE
