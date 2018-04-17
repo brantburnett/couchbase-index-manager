@@ -81,17 +81,20 @@ lifecycle:
   drop: true
 ```
 
-| Field          | Required | Description |
-| -------------- |--------- | ----------- |
-| type           | N | If present, must be "index" |
-| name           | Y | Name of the index. |
-| is_primary     | N | True for a primary index. |
-| index_key      | N | Array of index keys.  May be attributes of documents deterministic functions. |
-| condition      | N | Condition for the WHERE clause of the index. |
-| manual_replica | N | Force manual replica management, rather than using Couchbase 5.X automatic replicas. Automatically set to true for Couchbase 4.X. |
-| num_replica    | N | Defaults to 0, number of index replicas to create. |
-| nodes          | N | List of nodes for index placement.  Automatic placement is used if not present. |
-| lifecycle.drop | N | If true, drops the index if it exists. |
+| Field              | Required | Description |
+| ------------------ |--------- | ----------- |
+| type               | N | If present, must be "index" |
+| name               | Y | Name of the index. |
+| is_primary         | N | True for a primary index. |
+| index_key          | N | Array of index keys.  May be attributes of documents deterministic functions. |
+| condition          | N | Condition for the WHERE clause of the index. |
+| partition          | N | For CB 5.5, object to specify index partitioning |
+| partition.exprs    | Y | Required if `partition` is present, array of strings for attributes used to create partition |
+| partition.stragegy | N | Partition strategy to use, defaults to `hash` |
+| manual_replica     | N | Force manual replica management, rather than using Couchbase 5.X automatic replicas. Automatically set to true for Couchbase 4.X. |
+| num_replica        | N | Defaults to 0, number of index replicas to create. |
+| nodes              | N | List of nodes for index placement.  Automatic placement is used if not present. |
+| lifecycle.drop     | N | If true, drops the index if it exists. |
 
 A primary index *must not* have index_key or condition properties.  A secondary index *must* have values in the index_key array.  Additionally, there may not be more than one primary index in the set of definitions.
 
@@ -103,18 +106,21 @@ When deploying to multiple environments, there may be variations in index defini
 
 Overrides are processed in the order they are found, and can only override index definitions that with the same name.  The index definition must also be found before the override.  Any field which is not supplied on the override will be skipped, leaving the original value unchanged.  The exception is `nodes` and `num_replica`, updating one will automatically adjust the other field.
 
-| Field          | Required | Description |
-| -------------- |--------- | ----------- |
-| type           | Y | Always "override". |
-| name           | Y | Name of the index. |
-| is_primary     | N | True for a primary index. |
-| index_key      | N | Array of index keys.  May be attributes of documents deterministic functions. |
-| condition      | N | Condition for the WHERE clause of the index. |
-| manual_replica | N | Force manual replica management, rather than using Couchbase 5.X automatic replicas. Automatically set to true for Couchbase 4.X. |
-| num_replica    | N | Number of index replicas to create. |
-| nodes          | N | List of nodes for index placement. |
-| lifecycle.drop | N | If true, drops the index if it exists. |
-| post_process   | N | Optional Javascript function body which may further alter the index definition. "this" will be the index definition. |
+| Field              | Required | Description |
+| ------------------ |--------- | ----------- |
+| type               | Y | Always "override". |
+| name               | Y | Name of the index. |
+| is_primary         | N | True for a primary index. |
+| index_key          | N | Array of index keys.  May be attributes of documents deterministic functions. |
+| condition          | N | Condition for the WHERE clause of the index. |
+| partition          | N | For CB 5.5, object to specify index partitioning.  Use `null` to remove partition during override. |
+| partition.exprs    | N | Array of strings for attributes used to create partition, replaces the existing array. |
+| partition.stragegy | N | Partition strategy to use |
+| manual_replica     | N | Force manual replica management, rather than using Couchbase 5.X automatic replicas. Automatically set to true for Couchbase 4.X. |
+| num_replica        | N | Number of index replicas to create. |
+| nodes              | N | List of nodes for index placement. |
+| lifecycle.drop     | N | If true, drops the index if it exists. |
+| post_process       | N | Optional Javascript function body which may further alter the index definition. "this" will be the index definition. |
 
 ## Node Maps
 

@@ -22,6 +22,23 @@ export class FeatureVersions {
     }
 
     /**
+     * Tests for PARTITION BY compatibility
+     *
+     * @param  {Version} version
+     * @param  {string} strategy Partition strategy, i.e. 'HASH'
+     * @return {boolean}
+     */
+    static partitionBy(version, strategy) {
+        if (strategy.toUpperCase() !== 'HASH') {
+            return false;
+        }
+
+        return version &&
+            (version.major > 5 ||
+            (version.major == 5 && version.minor >= 5));
+    }
+
+    /**
      * Tests for automatic replica compatibility
      *
      * @param  {Version} version
