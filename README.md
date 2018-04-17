@@ -66,7 +66,7 @@ is_primary: true
 ---
 name: BeersByAbv
 index_key:
-- abv
+- abv DESC
 condition: (`type` = 'beer')
 num_replica: 0
 ---
@@ -86,7 +86,7 @@ lifecycle:
 | type               | N | If present, must be "index" |
 | name               | Y | Name of the index. |
 | is_primary         | N | True for a primary index. |
-| index_key          | N | Array of index keys.  May be attributes of documents deterministic functions. |
+| index_key          | N | Array of index keys.  May be attributes of documents or deterministic functions. |
 | condition          | N | Condition for the WHERE clause of the index. |
 | partition          | N | For CB 5.5, object to specify index partitioning |
 | partition.exprs    | Y | Required if `partition` is present, array of strings for attributes used to create partition |
@@ -97,6 +97,8 @@ lifecycle:
 | lifecycle.drop     | N | If true, drops the index if it exists. |
 
 A primary index *must not* have index_key or condition properties.  A secondary index *must* have values in the index_key array.  Additionally, there may not be more than one primary index in the set of definitions.
+
+For Couchbase Server 5.0 and later, you may append `DESC` to the end of an index_key to use a descending collation.
 
 If `nodes` and `num_replica` are both present, then `num_replica` must be the number of nodes minus one.
 
@@ -111,7 +113,7 @@ Overrides are processed in the order they are found, and can only override index
 | type               | Y | Always "override". |
 | name               | Y | Name of the index. |
 | is_primary         | N | True for a primary index. |
-| index_key          | N | Array of index keys.  May be attributes of documents deterministic functions. |
+| index_key          | N | Array of index keys.  May be attributes of documents or deterministic functions. |
 | condition          | N | Condition for the WHERE clause of the index. |
 | partition          | N | For CB 5.5, object to specify index partitioning.  Use `null` to remove partition during override. |
 | partition.exprs    | N | Array of strings for attributes used to create partition, replaces the existing array. |

@@ -423,7 +423,8 @@ export class IndexDefinition extends IndexDefinitionBase {
                 `Invalid index definition for ${this.name}: ${e.message}`);
         }
 
-        this.index_key = (plan.keys || []).map((key) => key.expr);
+        this.index_key = (plan.keys || []).map((key) =>
+            key.expr + (key.desc ? ' DESC' : ''));
         this.condition = plan.where || '';
         this.partition = plan.partition;
     }
