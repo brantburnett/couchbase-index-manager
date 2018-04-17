@@ -6,3 +6,6 @@ node_modules/
 /example
 /testbin
 /env
+
+# We can exclude because Dockerfile does the compile
+/dist

@@ -11,12 +11,19 @@ import {FeatureVersions} from './feature-versions';
  * @property {?boolean} drop
  */
 
+/**
+ * @typedef PartitionHash
+ * @property {!array.string} exprs
+ * @property {?string} strategy
+ */
+
  /**
  * @typedef DefinitionBase
  * @abstract
  * @property {?boolean} is_primary
  * @property {?array.string | string} index_key
  * @property {?string} condition
+ * @property {?PartitionHash} partition
  * @property {?boolean} manual_replica
  * @property {?number} num_replica
  * @property {?array.string} nodes
@@ -40,6 +47,7 @@ import {FeatureVersions} from './feature-versions';
  * @property {string} name
  * @property {array.string} index_key
  * @property {?string} condition
+ * @property {?string} partition
  * @property {?boolean} is_primary
  * @property {?number} num_replica
  * @property {?array.string} nodes
@@ -94,6 +102,22 @@ const keys = {
             _.compact([val]) :
             Array.from(val),
     condition: (val) => val || '',
+    partition: function(val) {
+        // For overrides, ignore undefined
+        // But clear the entire value if null
+
+        if (!_.isUndefined(val)) {
+            if (!val) {
+                this.partition = undefined;
+            } else {
+                if (!this.partition) {
+                    this.partition = {};
+                }
+
+                _.extend(this.partition, val);
+            }
+        }
+    },
     nodes: function(val) {
         this.nodes = val;
 
@@ -137,6 +161,7 @@ const keys = {
  * @property {!boolean} is_primary
  * @property {!array.string} index_key
  * @property {?string} condition
+ * @property {?PartitionHash} partition
  * @property {!boolean} manual_replica
  * @property {!number} num_replica
  * @property {?array.string} nodes
@@ -270,14 +295,20 @@ export class IndexDefinition extends IndexDefinitionBase {
                 this.getWithClause(replicaNum),
                 currentIndex);
         } else if (!this.manual_replica && currentIndex.num_replica &&
-            this.num_replica !== currentIndex.num_replica) {
+            this.num_replica !== currentIndex.num_replica &&
+            !currentIndex.partition) {
+            // Ignore replicas on partitioned indexes for now
+
             // Number of replicas changed for an auto replica index
-            // We must drop and recreate
+            // We must drop and recreate.
 
             yield new UpdateIndexMutation(this, this.name + suffix,
                 this.getWithClause(replicaNum),
                 currentIndex);
-        } else if (this.nodes && currentIndex.nodes) {
+        } else if (this.nodes && currentIndex.nodes &&
+            !currentIndex.partition) {
+            // Ignore replicas on partitioned indexes for now
+
             // Check for required node changes
             currentIndex.nodes.sort();
 
@@ -315,6 +346,23 @@ export class IndexDefinition extends IndexDefinitionBase {
     }
 
     /**
+     * Formats the PartitionHash as a string
+     *
+     * @return {string}
+     */
+    getPartitionString() {
+        if (!this.partition) {
+            return '';
+        }
+
+        let str = `${(this.partition.strategy || 'HASH').toUpperCase()}(`;
+        str += this.partition.exprs.join();
+        str += ')';
+
+        return str;
+    }
+
+    /**
      * @private
      * Tests to see if a Couchbase index matches this definition
      *
@@ -343,7 +391,8 @@ export class IndexDefinition extends IndexDefinitionBase {
      */
     requiresUpdate(index) {
         return (index.condition || '') !== this.condition
-            || !_.isEqual(index.index_key, this.index_key);
+            || !_.isEqual(index.index_key, this.index_key)
+            || (index.partition || '') !== this.getPartitionString();
     }
 
     /**
@@ -376,6 +425,7 @@ export class IndexDefinition extends IndexDefinitionBase {
 
         this.index_key = (plan.keys || []).map((key) => key.expr);
         this.condition = plan.where || '';
+        this.partition = plan.partition;
     }
 
     /**
@@ -406,6 +456,11 @@ export class IndexDefinition extends IndexDefinitionBase {
             if (this.condition) {
                 statement += ` WHERE ${this.condition}`;
             }
+        }
+
+        if (this.partition) {
+            statement +=
+                ` PARTITION BY ${this.getPartitionString()}`;
         }
 
         withClause = _.extend({}, withClause, {

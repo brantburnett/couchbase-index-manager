@@ -146,6 +146,35 @@ describe('ctor', function() {
         expect(def.lifecycle)
             .to.deep.equal(lifecycle);
     });
+
+    it('partition copies values', function() {
+        let partition = {
+            exprs: ['test'],
+            strategy: 'hash',
+        };
+
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            partition: partition,
+        });
+
+        expect(def.partition)
+            .to.not.equal(partition);
+        expect(def.partition)
+            .to.deep.equal(partition);
+    });
+
+    it('partition null is undefined', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            partition: null,
+        });
+
+        expect(def.partition)
+            .to.be.undefined;
+    });
 });
 
 describe('applyOverride', function() {
@@ -337,6 +366,192 @@ describe('applyOverride', function() {
             .to.have.property('initial', 1);
         expect(def.lifecycle)
             .to.have.property('drop', true);
+    });
+
+    it('partition undefined leaves unmodified', function() {
+        let partition = {
+            exprs: ['test'],
+            strategy: 'hash',
+        };
+
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            partition: partition,
+        });
+
+        def.applyOverride({});
+
+        expect(def.partition)
+            .to.deep.equal(partition);
+    });
+
+    it('partition null clears', function() {
+        let partition = {
+            exprs: ['test'],
+            strategy: 'hash',
+        };
+
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            partition: partition,
+        });
+
+        def.applyOverride({
+            partition: null,
+        });
+
+        expect(def.partition)
+            .to.be.undefined;
+    });
+
+    it('partition updates strategy', function() {
+        let partition = {
+            exprs: ['test'],
+            strategy: 'hash',
+        };
+
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            partition: partition,
+        });
+
+        def.applyOverride({
+            partition: {
+                strategy: 'other',
+            },
+        });
+
+        expect(def.partition)
+            .to.have.property('strategy', 'other');
+        expect(def.partition.exprs)
+            .is.equalTo(partition.exprs);
+    });
+
+    it('partition replaces exprs', function() {
+        let partition = {
+            exprs: ['test', 'test2'],
+            strategy: 'hash',
+        };
+
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            partition: partition,
+        });
+
+        def.applyOverride({
+            partition: {
+                exprs: ['test3'],
+            },
+        });
+
+        expect(def.partition)
+            .to.have.property('strategy', 'hash');
+        expect(def.partition.exprs)
+            .is.equalTo(['test3']);
+    });
+});
+
+describe('getMutation partition change', function() {
+    it('ignores matching partition', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            partition: {
+                exprs: ['`test`'],
+            },
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    partition: 'HASH(`test`)',
+                    nodes: ['a:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(0);
+    });
+
+    it('updates if partition does not match', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            partition: {
+                exprs: ['`test`'],
+            },
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    partition: 'HASH(`test2`)',
+                    nodes: ['a:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(UpdateIndexMutation);
+    });
+
+    it('updates if partition removed', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    partition: 'HASH(`test2`)',
+                    nodes: ['a:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(UpdateIndexMutation);
+    });
+
+    it('updates if partition added', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            partition: {
+                exprs: ['`test`'],
+            },
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(UpdateIndexMutation);
     });
 });
 
@@ -885,4 +1100,64 @@ describe('normalize', function() {
             expect(def.condition)
                 .to.equal('');
         });
+
+        it('replaces partition', async function() {
+            let def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                partition: {
+                    exprs: ['test'],
+                },
+            });
+
+            let getQueryPlan = stub().returns(Promise.resolve({
+                keys: [
+                    {expr: '`key`'},
+                ],
+                partition: {
+                    exprs: ['test2'],
+                    strategy: 'HASH',
+                },
+            }));
+
+            let manager = {
+                bucketName: 'test',
+                getQueryPlan: getQueryPlan,
+            };
+
+            await def.normalize(manager);
+
+            expect(def.partition)
+                .to.have.property('strategy', 'HASH');
+            expect(def.partition)
+                .to.have.property('exprs')
+                .which.is.equalTo(['test2']);
+        });
+
+        it('plan without partition leaves partition undefined',
+            async function() {
+                let def = new IndexDefinition({
+                    name: 'test',
+                    index_key: 'key',
+                    partition: {
+                        exprs: ['test'],
+                    },
+                });
+
+                let getQueryPlan = stub().returns(Promise.resolve({
+                    keys: [
+                        {expr: '`key`'},
+                    ],
+                }));
+
+                let manager = {
+                    bucketName: 'test',
+                    getQueryPlan: getQueryPlan,
+                };
+
+                await def.normalize(manager);
+
+                expect(def.partition)
+                    .to.be.undefined;
+            });
 });

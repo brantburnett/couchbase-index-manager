@@ -104,6 +104,16 @@ export class Sync {
 
         // Normalize the definitions before testing for mutations
         for (let def of definitions) {
+            if (def.partition) {
+                let strategy = def.partition.strategy || 'HASH';
+
+                if (!FeatureVersions.partitionBy(
+                    mutationContext.clusterVersion, strategy)) {
+                    throw new Error(
+                        `Partition strategy '${strategy}' is not supported`);
+                }
+            }
+
             await def.normalize(this.manager);
         }
 
