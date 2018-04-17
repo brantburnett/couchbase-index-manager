@@ -1051,6 +1051,31 @@ describe('normalize', function() {
             .to.be.equalTo(['`key`']);
     });
 
+    it('handles descending keys', async function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            condition: 'type = \'beer\'',
+        });
+
+        let getQueryPlan = stub().returns(Promise.resolve({
+            keys: [
+                {expr: '`key`', desc: true},
+            ],
+            where: '`type` = "beer"',
+        }));
+
+        let manager = {
+            bucketName: 'test',
+            getQueryPlan: getQueryPlan,
+        };
+
+        await def.normalize(manager);
+
+        expect(def.index_key)
+            .to.be.equalTo(['`key` DESC']);
+    });
+
     it('replaces condition', async function() {
         let def = new IndexDefinition({
             name: 'test',
