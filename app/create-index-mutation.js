@@ -49,6 +49,11 @@ export class CreateIndexMutation extends IndexMutation {
                 chalk.greenBright(
                     `  Repl: ${this.definition.num_replica}`));
         }
+
+        if (this.withClause.nodes) {
+            logger.info(chalk.greenBright(
+                ` Nodes: ${this.withClause.nodes.join()}`));
+        }
     }
 
     /** @inheritDoc */
