@@ -18,13 +18,14 @@ const mockManager = {
     waitForIndexBuild: () => Promise.resolve(),
 };
 
-const noLogging = {
+const planOptions = {
     logger: {
         log: () => {},
         error: () => {},
         warn: () => {},
         info: () => {},
     },
+    buildDelay: 0, // don't delay during unit tests
 };
 
 describe('execute', function() {
@@ -41,7 +42,7 @@ describe('execute', function() {
         }));
         let secondStub = stub(second, 'execute').returns(Promise.resolve());
 
-        let plan = new Plan(mockManager, [first, second], noLogging);
+        let plan = new Plan(mockManager, [first, second], planOptions);
 
         await plan.execute();
 
@@ -71,7 +72,7 @@ describe('execute', function() {
         }));
         let thirdStub = stub(third, 'execute').returns(Promise.resolve());
 
-        let plan = new Plan(mockManager, [first, second, third], noLogging);
+        let plan = new Plan(mockManager, [first, second, third], planOptions);
 
         await plan.execute();
 
@@ -96,7 +97,7 @@ describe('execute', function() {
         }));
         let secondStub = stub(second, 'execute').returns(Promise.resolve());
 
-        let plan = new Plan(mockManager, [first, second], noLogging);
+        let plan = new Plan(mockManager, [first, second], planOptions);
 
         await plan.execute()
             .catch(() => {});
@@ -119,7 +120,7 @@ describe('execute', function() {
         second.phase = 2;
         let secondStub = stub(second, 'execute').returns(Promise.resolve());
 
-        let plan = new Plan(mockManager, [first, second], noLogging);
+        let plan = new Plan(mockManager, [first, second], planOptions);
 
         await plan.execute()
             .catch(() => {});

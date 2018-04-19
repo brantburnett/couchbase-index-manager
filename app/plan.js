@@ -5,6 +5,7 @@ import chalk from 'chalk';
  * @typedef PlanOptions
  * @property {?logger} logger logger for output
  * @property {?number} buildTimeout Milliseconds to wait for indexes to build
+ * @property {?number} buildDelay Milliseconds to wait before building indexes
  */
 
  /**
@@ -29,6 +30,11 @@ function addMutationsByPhase(mutations, currentMutations) {
     return currentMutations;
 }
 
+const defaultOptions = {
+    logger: console,
+    buildDelay: 3000,
+};
+
 /**
  * Represents a planned set of mutations for synchronization
  *
@@ -44,7 +50,7 @@ export class Plan {
      */
     constructor(manager, mutations, options) {
         this.manager = manager;
-        this.options = extend({logger: console}, options);
+        this.options = extend(defaultOptions, options);
 
         this.mutations = addMutationsByPhase(mutations, []);
     }
@@ -116,6 +122,14 @@ export class Plan {
 
             this.options.logger.info(
                 chalk.greenBright('Building indexes...'));
+
+            // Wait 3 seconds for index nodes to synchronize before building
+            // This helps to reduce race conditions
+            // https://github.com/brantburnett/couchbase-index-manager/issues/35
+            if (this.options.buildDelay > 0) {
+                await new Promise((resolve) =>
+                    setTimeout(resolve, this.options.buildDelay));
+            }
             await this.manager.buildDeferredIndexes();
 
             if (!await this.manager.waitForIndexBuild(
