@@ -62,8 +62,9 @@ export class UpdateIndexMutation extends IndexMutation {
                     `     -> ${this.definition.condition || 'none'}`));
         }
 
-        if (!this.definition.manual_replica &&
-            this.definition.num_replica > 0) {
+        let hasReplica = Math.max(this.definition.num_replica,
+                                  this.existingIndex.num_replica) > 0;
+        if (!this.definition.manual_replica && hasReplica) {
             logger.info(
                 chalk.cyanBright(
                     `  Repl: ${this.definition.num_replica}`));
