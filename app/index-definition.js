@@ -121,13 +121,21 @@ const keys = {
     nodes: function(val) {
         this.nodes = val;
 
-        if (val && val.length) {
+        // for partitioned index, num_replica and nodes
+        // are decoupled so skip setting num_replica
+        if (val && val.length && !this.partition) {
             this.num_replica = val.length-1;
         }
     },
     manual_replica: (val) => !!val,
     num_replica: function(val) {
-        return val || (this.nodes ? this.nodes.length-1 : 0);
+        if (!this.partition) {
+            return val || (this.nodes ? this.nodes.length-1 : 0);
+        } else {
+            // for partitioned index, num_replica and nodes
+            // are decoupled so skip nodes check
+            return val || 0;
+        }
     },
     lifecycle: function(val) {
         if (!this.lifecycle) {
@@ -197,13 +205,6 @@ export class IndexDefinition extends IndexDefinitionBase {
      *     missing from the overrides object
      */
     applyOverride(override, applyMissing) {
-        // Validate the overrides
-        if (override.nodes && (override.num_replica >= 0)) {
-            if (override.nodes.length !== override.num_replica + 1) {
-                throw new Error('mismatch between num_replica and nodes');
-            }
-        }
-
         // Process the keys
         Object.keys(keys).forEach((key) => {
             if (applyMissing || override[key] !== undefined) {
@@ -227,6 +228,18 @@ export class IndexDefinition extends IndexDefinitionBase {
 
             if (this.condition) {
                 throw new Error('condition is not allowed for a primary index');
+            }
+        }
+
+        if (this.partition && this.manual_replica) {
+            throw new Error(
+                'manual_replica is not supported on partioned indexes');
+        }
+
+        if (!this.partition && this.nodes) {
+            // Validate nodes and num_replica values
+            if (this.nodes.length !== this.num_replica + 1) {
+                throw new Error('mismatch between num_replica and nodes');
             }
         }
     }
@@ -294,21 +307,16 @@ export class IndexDefinition extends IndexDefinitionBase {
             yield new UpdateIndexMutation(this, this.name + suffix,
                 this.getWithClause(replicaNum),
                 currentIndex);
-        } else if (!this.manual_replica && currentIndex.num_replica &&
-            this.num_replica !== currentIndex.num_replica &&
-            !currentIndex.partition) {
-            // Ignore replicas on partitioned indexes for now
-
+        } else if (!this.manual_replica &&
+            !_.isUndefined(currentIndex.num_replica) &&
+            this.num_replica !== currentIndex.num_replica) {
             // Number of replicas changed for an auto replica index
             // We must drop and recreate.
 
             yield new UpdateIndexMutation(this, this.name + suffix,
                 this.getWithClause(replicaNum),
                 currentIndex);
-        } else if (this.nodes && currentIndex.nodes &&
-            !currentIndex.partition) {
-            // Ignore replicas on partitioned indexes for now
-
+        } else if (this.nodes && currentIndex.nodes) {
             // Check for required node changes
             currentIndex.nodes.sort();
 
