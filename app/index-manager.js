@@ -137,9 +137,17 @@ export class IndexManager {
                 }
 
                 // add any hosts listed to index info
-                index.nodes.push(...status.hosts);
+                // but only for the first if partitioned (others will be dupes)
+                if (!index.partition || index.nodes.length === 0) {
+                    index.nodes.push(...status.hosts);
+                }
 
-                index.num_replica = index.nodes.length - 1;
+                // if this is the first found, set to 0, otherwise add 1
+                if (index.num_replica === undefined) {
+                    index.num_replica = 0;
+                } else {
+                    index.num_replica++;
+                }
             }
         });
 

@@ -77,6 +77,18 @@ describe('ctor', function() {
             .to.throw();
     });
 
+    it('manual replica with partition throws error', function() {
+        expect(() => new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            manual_replica: true,
+            partition: {
+                exprs: ['type'],
+            },
+        }))
+            .to.throw();
+    });
+
     it('node list sets num_replica', function() {
         let def = new IndexDefinition({
             name: 'test',
@@ -258,6 +270,21 @@ describe('applyOverride', function() {
             .to.throw();
     });
 
+    it('manual replica with partition throws error', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            manual_replica: true,
+        });
+
+        expect(() => def.applyOverride({
+            partition: {
+                exprs: ['type'],
+            },
+        }))
+            .to.throw();
+    });
+
     it('node list sets num_replica', function() {
         let def = new IndexDefinition({
             name: 'test',
@@ -297,6 +324,26 @@ describe('applyOverride', function() {
             num_replica: 2,
         }))
             .to.throw();
+    });
+
+    it('partitioned nodes and num_replica mismatch succeeds', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            partition: {
+                exprs: ['type'],
+            },
+        });
+
+        def.applyOverride({
+            nodes: ['a', 'b', 'c'],
+            num_replica: 2,
+        });
+
+        expect(def.nodes)
+            .to.have.length(3);
+        expect(def.num_replica)
+            .to.equal(2);
     });
 
     it('nodes and num_replica match succeeds', function() {
@@ -772,6 +819,78 @@ describe('getMutation automatic replica node changes', function() {
                     index_key: ['`key`'],
                     nodes: ['a:8091', 'b:8091'],
                     num_replica: 1,
+                },
+            ],
+            clusterVersion: {
+                major: 5,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(UpdateIndexMutation)
+            .and.to.include({
+                name: 'test',
+                phase: 1,
+            })
+            .and.to.satisfy((m) => !m.isSafe());
+    });
+
+    it('num_replica addition from zero gives unsafe update', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            num_replica: 1,
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091', 'b:8091'],
+                    num_replica: 0,
+                },
+            ],
+            clusterVersion: {
+                major: 5,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(UpdateIndexMutation)
+            .and.to.include({
+                name: 'test',
+                phase: 1,
+            })
+            .and.to.satisfy((m) => !m.isSafe());
+    });
+
+    it('partitioned num_replica change gives unsafe update', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            num_replica: 2,
+            partition: {
+                exprs: ['`type`'],
+            },
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091', 'b:8091'],
+                    num_replica: 1,
+                    partition: {
+                        exprs: ['`type`'],
+                    },
                 },
             ],
             clusterVersion: {
