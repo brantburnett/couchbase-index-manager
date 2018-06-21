@@ -461,15 +461,17 @@ export class IndexDefinition extends IndexDefinitionBase {
             statement = `CREATE INDEX ${indexName}`;
             statement += ` ON ${ensureEscaped(bucketName)}`;
             statement += ` (${this.index_key.join(', ')})`;
-
-            if (this.condition) {
-                statement += ` WHERE ${this.condition}`;
-            }
         }
 
         if (this.partition) {
             statement +=
                 ` PARTITION BY ${this.getPartitionString()}`;
+        }
+
+        if (!this.is_primary) {
+            if (this.condition) {
+                statement += ` WHERE ${this.condition}`;
+            }
         }
 
         withClause = _.extend({}, withClause, {
