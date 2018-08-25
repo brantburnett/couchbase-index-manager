@@ -23,9 +23,9 @@ gulp.task('build', () =>
         .pipe(gulp.dest('dist'))
 );
 
-gulp.task('watch', ['build'], () => {
-    gulp.watch('app/**/*.js', ['build']);
-});
+gulp.task('watch', gulp.series('build', () => {
+    gulp.watch('app/**/*.js', gulp.series('build'));
+}));
 
 gulp.task('testbuild', () =>
     gulp.src(['app/**/*.js', 'test/**/*.js'], {base: './'})
@@ -36,7 +36,7 @@ gulp.task('testbuild', () =>
         .pipe(gulp.dest('testbin'))
 );
 
-gulp.task('test', ['testbuild'], () =>
+gulp.task('test', gulp.series('testbuild', () =>
     gulp.src('testbin/test/**/*.spec.js')
         .pipe(plumber({
             errorHandler: () => {},
@@ -46,4 +46,4 @@ gulp.task('test', ['testbuild'], () =>
                 colors: true,
             }),
         }))
-);
+));
