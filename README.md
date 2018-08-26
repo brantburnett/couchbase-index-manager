@@ -45,12 +45,31 @@ cat definitions.yaml | couchbase-index-manager -c couchbase://node -u Administra
 - *-t 30* - Seconds to wait for index build to complete, 0 for infinite (default 5m)
 - *--bucket-password password* - For 4.x clusters, provides the bucket password for secure buckets
 
-### Examples
+### Sync Examples
 
 ```sh
 couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/
 couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/file.yaml
 couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/file.json
+```
+
+## Validate Command
+
+```sh
+couchbase-index-manager [common-options] validate [validate-options] <path...>
+```
+
+The validate command loads definition files and confirms they are valid. This is typically used as part of a continuous integration process for repositories containing definition files.
+
+Optionally, the validate command can connect to a Couchbase cluster and use EXPLAIN on CREATE INDEX commands to further validate the syntax of the definitions.  When using `--validate-syntax`, a bucket name must be provided.
+
+### Validate Examples
+
+```sh
+couchbase-index-manager validate ./directory/
+couchbase-index-manager validate ./directory/file.yaml
+couchbase-index-manager validate ./directory/file.json
+couchbase-index-manager -c couchbase://localhost -u Administrator -p password validate --validate-syntax beer-sample ./directory/
 ```
 
 ## Definition Files
