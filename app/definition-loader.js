@@ -1,11 +1,11 @@
 import chalk from 'chalk';
 import fs from 'fs';
-import {isObjectLike} from 'lodash';
+import {forOwn, isObjectLike} from 'lodash';
 import path from 'path';
 import util from 'util';
 import yaml from 'js-yaml';
-import {IndexDefinition} from './index-definition';
-import {NodeMap} from './node-map';
+import {IndexDefinition, IndexValidators} from './index-definition';
+import {NodeMap, NodeMapValidators} from './node-map';
 
 // Ensure that promisify is available on Node 6
 require('util.promisify').shim();
@@ -15,6 +15,21 @@ const readdir = util.promisify(fs.readdir);
 const readFile = util.promisify(fs.readFile);
 
 const INDEX_EXTENSIONS = ['.json', '.yaml', '.yml'];
+
+/**
+ * Set of validators, keyed by type and then by property.  Each validator
+ * may throw an exception if that property is in error.  First parameter
+ * is the value of that property.  "this" will be the definition.
+ *
+ * May also include a "post_validate" validator, which is called last
+ * and without a parameter.  This validator is used to validate the object
+ * as a whole, to ensure property values compatible with each other.
+ */
+const validatorSets = {
+    'nodeMap': NodeMapValidators,
+    'index': IndexValidators,
+    'override': IndexValidators,
+};
 
 /**
  * Loads index definitions from disk or stdin
@@ -146,6 +161,8 @@ export class DefinitionLoader {
             definition.type = 'index';
         }
 
+        this.validateDefinition(definition);
+
         if (definition.type === 'nodeMap') {
             if (definition.map && isObjectLike(definition.map)) {
                 nodeMap.merge(definition.map);
@@ -173,6 +190,38 @@ export class DefinitionLoader {
             definitions.push(new IndexDefinition(definition));
         } else {
             throw new Error(`Unknown definition type '${definition.type}'`);
+        }
+    }
+
+    /**
+     * @private
+     * Validates a definition based on its type, throwing an exception
+     * if there is a problem.
+     *
+     * @param {*} definition
+     */
+    validateDefinition(definition) {
+        const validatorSet = validatorSets[definition.type];
+        if (validatorSet) {
+            forOwn(validatorSet, (validator, key) => {
+                try {
+                    if (key !== 'post_validate') {
+                        validator.call(definition, definition[key]);
+                    }
+                } catch (e) {
+                    throw new Error(
+                        `${e} in ${definition.name || 'unk'}.${key}`);
+                }
+            });
+
+            if (validatorSet.post_validate) {
+                try {
+                    validatorSet.post_validate.call(definition);
+                } catch (e) {
+                    throw new Error(
+                        `${e} in ${definition.name || 'unk'}`);
+                }
+            }
         }
     }
 }
