@@ -4,6 +4,7 @@ import pkg from './../package.json';
 import chalk from 'chalk';
 import {ConnectionManager} from './connection-manager';
 import {Sync} from './sync';
+import {Validator} from './validator';
 
 /**
  * Parses options from the parent command, such as cluster, username,
@@ -62,6 +63,31 @@ export function run() {
         .option(
             '--no-color',
             'Supress color in output'); // Applied automatically by chalk
+
+    program
+        .command('validate <path...>')
+        .description('Validates index definition files')
+        .option(
+            '--validate-syntax <bucket-name>',
+            'Connect to Couchbase and fully validate syntax')
+        .action((path, cmd) => {
+            let validator = new Validator(path);
+
+            if (cmd.validateSyntax) {
+                let connectionInfo = extend(
+                    parseBaseOptions(cmd),
+                    {
+                        bucketName: cmd.validateSyntax,
+                    });
+
+                let connectionManager = new ConnectionManager(connectionInfo);
+                handleAsync(connectionManager.execute((manager) => {
+                    return validator.execute(manager);
+                }));
+            } else {
+                handleAsync(validator.execute());
+            }
+        });
 
     program
         .command('sync <bucket> <path...>')

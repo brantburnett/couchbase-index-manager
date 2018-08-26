@@ -25,6 +25,25 @@
                 "${workspaceRoot}/node_modules/**/*.js",
                 "<node_internals>/**/*.js"
             ]
-        }
+        },
+        {
+          "type": "node",
+          "request": "launch",
+          "name": "Validate",
+          "program": "${workspaceFolder}/bin/couchbase-index-manager",
+          "runtimeArgs": ["--nolazy"],
+          "args": [
+              "validate",
+              "./example/beer-sample"
+          ],
+          "console": "integratedTerminal",
+          "sourceMaps": true,
+          "smartStep": true,
+          "outFiles": ["${workspaceRoot}/dist/**/*.js"],
+          "skipFiles": [
+              "${workspaceRoot}/node_modules/**/*.js",
+              "<node_internals>/**/*.js"
+          ]
+      }
     ]
 }
