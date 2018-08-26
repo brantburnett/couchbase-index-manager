@@ -121,11 +121,11 @@ export const IndexValidators = {
             return;
         }
 
-        if (!_.isObjectLike(val)) {
+        if (!val.exprs || !_.isObjectLike(val.exprs)) {
             throw new Error('Invalid partition');
         }
 
-        _.forOwn(val, (v) => {
+        _.forOwn(val.exprs, (v) => {
             if (!_.isString(v)) {
                 throw new Error('Invalid partition');
             }
