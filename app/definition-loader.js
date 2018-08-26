@@ -28,7 +28,6 @@ const INDEX_EXTENSIONS = ['.json', '.yaml', '.yml'];
 const validatorSets = {
     'nodeMap': NodeMapValidators,
     'index': IndexValidators,
-    'override': IndexValidators,
 };
 
 /**
@@ -161,7 +160,7 @@ export class DefinitionLoader {
             definition.type = 'index';
         }
 
-        this.validateDefinition(definition);
+        this.validateDefinition(definition, match);
 
         if (definition.type === 'nodeMap') {
             if (definition.map && isObjectLike(definition.map)) {
@@ -199,9 +198,20 @@ export class DefinitionLoader {
      * if there is a problem.
      *
      * @param {*} definition
+     * @param {IndexDefinition} [match]
+     *     Existing index definition of the same name, if any
      */
-    validateDefinition(definition) {
-        const validatorSet = validatorSets[definition.type];
+    validateDefinition(definition, match) {
+        let effectiveType = definition.type;
+        if (effectiveType === 'override' && match) {
+            // Use validators based on the type of definition being overriden
+
+            if (match instanceof IndexDefinition) {
+                effectiveType = 'index';
+            }
+        }
+
+        const validatorSet = validatorSets[effectiveType];
         if (validatorSet) {
             forOwn(validatorSet, (validator, key) => {
                 try {
@@ -214,7 +224,9 @@ export class DefinitionLoader {
                 }
             });
 
-            if (validatorSet.post_validate) {
+            // Don't perform post_validate step on overrides, as overrides
+            // don't have the full set of properties.
+            if (validatorSet.post_validate && definition.type !== 'override') {
                 try {
                     validatorSet.post_validate.call(definition);
                 } catch (e) {
