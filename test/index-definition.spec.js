@@ -7,6 +7,7 @@ import {IndexDefinition} from '../app/index-definition';
 import {UpdateIndexMutation} from '../app/update-index-mutation';
 import {CreateIndexMutation} from '../app/create-index-mutation';
 import {MoveIndexMutation} from '../app/move-index-mutation';
+import {ResizeIndexMutation} from '../app/resize-index-mutation';
 
 use(chaiArrays);
 use(chaiThings);
@@ -908,7 +909,7 @@ describe('getMutation automatic replica node changes', function() {
     it('num_replica change gives unsafe update', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             num_replica: 2,
         });
 
@@ -941,7 +942,7 @@ describe('getMutation automatic replica node changes', function() {
     it('num_replica addition from zero gives unsafe update', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             num_replica: 1,
         });
 
@@ -971,10 +972,76 @@ describe('getMutation automatic replica node changes', function() {
             .and.to.satisfy((m) => !m.isSafe());
     });
 
+    it('num_replica change gives resize on 6.5', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            num_replica: 2,
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091', 'b:8091'],
+                    num_replica: 1,
+                },
+            ],
+            clusterVersion: {
+                major: 6,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(ResizeIndexMutation)
+            .and.to.include({
+                name: 'test',
+                phase: 1,
+            })
+            .and.to.satisfy((m) => m.isSafe());
+    });
+
+    it('num_replica addition from zero gives resize on 6.5', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            num_replica: 1,
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091'],
+                    num_replica: 0,
+                },
+            ],
+            clusterVersion: {
+                major: 6,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(ResizeIndexMutation)
+            .and.to.include({
+                name: 'test',
+                phase: 1,
+            })
+            .and.to.satisfy((m) => m.isSafe());
+    });
+
     it('partitioned num_replica change gives unsafe update', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             num_replica: 2,
             partition: {
                 exprs: ['`type`'],
@@ -1013,7 +1080,7 @@ describe('getMutation automatic replica node changes', function() {
     it('node length change gives unsafe update', function() {
         let def = new IndexDefinition({
             name: 'test',
-            index_key: 'key',
+            index_key: '`key`',
             nodes: ['a'],
         });
 
@@ -1041,6 +1108,39 @@ describe('getMutation automatic replica node changes', function() {
                 phase: 1,
             })
             .and.to.satisfy((m) => !m.isSafe());
+    });
+
+    it('node length change gives resize on 6.5', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            nodes: ['a'],
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091', 'b:8091'],
+                    num_replica: 1,
+                },
+            ],
+            clusterVersion: {
+                major: 6,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(ResizeIndexMutation)
+            .and.to.include({
+                name: 'test',
+                phase: 1,
+            })
+            .and.to.satisfy((m) => m.isSafe());
     });
 });
 
