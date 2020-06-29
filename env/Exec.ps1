@@ -27,18 +27,5 @@ if (-not $NoBuild) {
     }
 }
 
-$image = & docker inspect cbindexmgr_node1_1 -f '{{ index .Config.Labels \"com.centeredgesoftware.cbindexmgr.image\"}}'
-if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-}
-
-$version = [regex]::match($image,'((\d+\.){2}\d+)').Groups[1].Value
-if ($version) {
-    $versionNum = New-Object System.Version $version
-    if ($versionNum.Major -lt 5) {
-        $effectiveParams += @("--no-rbac")
-    }
-}
-
 docker run --rm -it --network cbindexmgr -v "$PSScriptRoot\..\example:/example:ro" -w /example cbindexmgr-testexec $effectiveParams
 exit $LASTEXITCODE

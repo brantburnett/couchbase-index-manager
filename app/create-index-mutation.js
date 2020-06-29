@@ -43,8 +43,8 @@ export class CreateIndexMutation extends IndexMutation {
                     `  Part: ${this.definition.getPartitionString()}`));
         }
 
-        if (this.definition.num_replica > 0
-            && !this.definition.manual_replica) {
+        if (this.definition.num_replica > 0 &&
+            !this.definition.manual_replica) {
             logger.info(
                 chalk.greenBright(
                     `  Repl: ${this.definition.num_replica}`));

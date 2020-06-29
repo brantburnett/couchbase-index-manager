@@ -12,3 +12,5 @@ parserOptions:
   sourceType: module
 rules:
   no-console: "off"
+  indent: "off"
+  prefer-const: "off"

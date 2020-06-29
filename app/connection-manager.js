@@ -1,4 +1,4 @@
-import {Cluster, PasswordAuthenticator, ClassicAuthenticator} from 'couchbase';
+import {Cluster} from 'couchbase';
 import {IndexManager} from './index-manager';
 
 /**
@@ -7,7 +7,6 @@ import {IndexManager} from './index-manager';
  * @property {string} username
  * @property {string} password
  * @property {string} bucketName
- * @property {boolean} disableRbac
  * @property {?string} bucketPassword For 4.x clusters with secure buckets
  */
 
@@ -46,26 +45,14 @@ export class ConnectionManager {
      * @return {IndexManager}
      */
     bootstrap() {
-        this.cluster = new Cluster(this.connectionInfo.cluster);
+        this.cluster = new Cluster(this.connectionInfo.cluster, {
+            username: this.connectionInfo.username,
+            password: this.connectionInfo.password,
+        });
 
-        if (this.connectionInfo.disableRbac) {
-            this.cluster.authenticate(new ClassicAuthenticator(
-                {},
-                this.connectionInfo.username,
-                this.connectionInfo.password
-            ));
-        } else {
-            this.cluster.authenticate(new PasswordAuthenticator(
-                this.connectionInfo.username,
-                this.connectionInfo.password));
-        }
+        this.bucket = this.cluster.bucket(this.connectionInfo.bucketName);
 
-        this.bucket = this.cluster.openBucket(
-            this.connectionInfo.bucketName,
-            this.connectionInfo.bucketPassword);
-
-        return new IndexManager(this.connectionInfo.bucketName, this.bucket,
-            this.cluster);
+        return new IndexManager(this.bucket, this.cluster);
     }
 
     /**
@@ -73,6 +60,6 @@ export class ConnectionManager {
      * Closes the Couchbase connection.
     */
     close() {
-        this.bucket.disconnect();
+        this.cluster.close();
     }
 }

@@ -1,4 +1,4 @@
-FROM node:8 as build
+FROM node:12 as build
 
 WORKDIR /app
 COPY package*.json ./
@@ -7,7 +7,7 @@ COPY ./ ./
 RUN npm run-script lint && \
     npm run-script build
 
-FROM node:8-alpine
+FROM node:12
 LABEL maintainer=bburnett@centeredgesoftware.com
 WORKDIR /app
 COPY --from=build /app ./

@@ -477,9 +477,9 @@ export class IndexDefinition extends IndexDefinitionBase {
      * @return {boolean}
      */
     requiresUpdate(index) {
-        return (index.condition || '') !== this.condition
-            || !_.isEqual(index.index_key, this.index_key)
-            || (index.partition || '') !== this.getPartitionString();
+        return (index.condition || '') !== this.condition ||
+            !_.isEqual(index.index_key, this.index_key) ||
+            (index.partition || '') !== this.getPartitionString();
     }
 
     /**
@@ -600,8 +600,8 @@ export class IndexDefinition extends IndexDefinitionBase {
         }
 
         for (let mutation of mutations) {
-            if (!(mutation instanceof CreateIndexMutation)
-                && !(mutation instanceof UpdateIndexMutation)) {
+            if (!(mutation instanceof CreateIndexMutation) &&
+                !(mutation instanceof UpdateIndexMutation)) {
                 mutation.phase = nextPhase;
             }
         }
