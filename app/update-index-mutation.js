@@ -77,6 +77,14 @@ export class UpdateIndexMutation extends IndexMutation {
             logger.info(chalk.cyanBright(
                 `    ->: ${this.withClause.nodes.join()}`));
         }
+
+        if (!isEqual(!!this.withClause.retain_deleted_xattr,
+            this.existingIndex.retain_deleted_xattr)) {
+            logger.info(chalk.cyanBright(
+                ` XATTR: ${this.existingIndex.retain_deleted_xattr}`));
+            logger.info(chalk.cyanBright(
+                `    ->: ${!!this.withClause.retain_deleted_xattr}`));
+        }
     }
 
     /** @inheritDoc */

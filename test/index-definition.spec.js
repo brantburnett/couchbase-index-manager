@@ -187,6 +187,27 @@ describe('ctor', function() {
         expect(def.partition)
             .to.be.undefined;
     });
+
+    it('no retain_deleted_xattr is false', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+        });
+
+        expect(def.retain_deleted_xattr)
+            .to.equal(false);
+    });
+
+    it('retain_deleted_xattr sets value', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+            retain_deleted_xattr: true,
+        });
+
+        expect(def.retain_deleted_xattr)
+            .to.equal(true);
+    });
 });
 
 describe('applyOverride', function() {
