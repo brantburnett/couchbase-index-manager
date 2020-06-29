@@ -106,6 +106,7 @@ lifecycle:
 | is_primary         | N | True for a primary index. |
 | index_key          | N | Array of index keys.  May be attributes of documents or deterministic functions. |
 | condition          | N | Condition for the WHERE clause of the index. |
+| retain_deleted_xattr | N | Boolean, used for Sync Gateway indexes |
 | partition          | N | For CB 5.5, object to specify index partitioning |
 | partition.exprs    | Y | Required if `partition` is present, array of strings for attributes used to create partition |
 | partition.stragegy | N | Partition strategy to use, defaults to `hash` |
@@ -133,6 +134,7 @@ Overrides are processed in the order they are found, and can only override index
 | is_primary         | N | True for a primary index. |
 | index_key          | N | Array of index keys.  May be attributes of documents or deterministic functions. |
 | condition          | N | Condition for the WHERE clause of the index. |
+| retain_deleted_xattr | N | Boolean, used for Sync Gateway indexes |
 | partition          | N | For CB 5.5, object to specify index partitioning.  Use `null` to remove partition during override. |
 | partition.exprs    | N | Array of strings for attributes used to create partition, replaces the existing array. |
 | partition.stragegy | N | Partition strategy to use |
