@@ -41,6 +41,12 @@ export class CreateIndexMutation extends IndexMutation {
             logger.info(
                 chalk.greenBright(
                     `  Part: ${this.definition.getPartitionString()}`));
+
+            if (this.definition.partition.num_partition) {
+                logger.info(
+                    chalk.greenBright(
+                        `# Part: ${this.definition.partition.num_partition}`));
+            }
         }
 
         if (this.definition.num_replica > 0 &&

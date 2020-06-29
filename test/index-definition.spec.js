@@ -548,6 +548,57 @@ describe('getMutation partition change', function() {
             .to.have.length(0);
     });
 
+    it('ignores matching num_partition', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            partition: {
+                exprs: ['`test`'],
+                num_partition: 3,
+            },
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    partition: 'HASH(`test`)',
+                    num_partition: 3,
+                    nodes: ['a:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(0);
+    });
+
+    it('ignores missing num_partition', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            partition: {
+                exprs: ['`test`'],
+            },
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    partition: 'HASH(`test`)',
+                    num_partition: 8,
+                    nodes: ['a:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(0);
+    });
+
     it('updates if partition does not match', function() {
         let def = new IndexDefinition({
             name: 'test',
@@ -563,6 +614,34 @@ describe('getMutation partition change', function() {
                     name: 'test',
                     index_key: ['`key`'],
                     partition: 'HASH(`test2`)',
+                    nodes: ['a:8091'],
+                },
+            ],
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceof(UpdateIndexMutation);
+    });
+
+    it('updates if num_partition does not match', function() {
+        let def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            partition: {
+                exprs: ['`test`'],
+                num_partition: 3,
+            },
+        });
+
+        let mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    partition: 'HASH(`test2`)',
+                    num_partition: 8,
                     nodes: ['a:8091'],
                 },
             ],

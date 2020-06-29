@@ -45,6 +45,29 @@ export class IndexManager {
 
     /**
      * @private
+     * Gets all indexes using a query
+     * Workaround until https://issues.couchbase.com/projects/JSCBC/issues/JSCBC-772 is resolved
+     *
+     * @return {Promise.array}
+     */
+    async getAllIndexes() {
+        let qs = '';
+        qs += 'SELECT idx.* FROM system:indexes AS idx';
+        qs += ' WHERE keyspace_id="' + this.bucketName + '"';
+        qs += ' AND `using`="gsi" ORDER BY is_primary DESC, name ASC';
+
+        const res = await this.cluster.query(qs);
+
+        const indexes = [];
+        res.rows.forEach((row) => {
+            indexes.push(row);
+        });
+
+        return indexes;
+    }
+
+    /**
+     * @private
      * Gets index statuses for the bucket via the cluster manager
      *
      * @return {Promise.array}
@@ -79,16 +102,7 @@ export class IndexManager {
      * @return {Promise<array>} List of couchbase indexes in the bucket
      */
     async getIndexes() {
-        let indexes = await this.manager.getAllIndexes(this.bucketName);
-
-        // SDK 3 changed from index_key to indexKey and is_primary to isPrimary,
-        // but this is confusing since our index definitions match the REST
-        // response format with underscores. Therefore, adjust to match.
-        indexes = indexes.map((index) => ({
-            ...index,
-            index_key: index.indexKey,
-            is_primary: index.isPrimary,
-        }));
+        let indexes = await this.getAllIndexes();
 
         // Get additional info from the index status API
         let statuses = await this.getIndexStatuses();
@@ -119,6 +133,7 @@ export class IndexManager {
 
                 index.retain_deleted_xattr =
                     /"retain_deleted_xattr"\s*:\s*true/.test(status.definition);
+                index.num_partition = status.numPartition;
             }
         });
 
