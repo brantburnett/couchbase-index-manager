@@ -146,8 +146,11 @@ export function run() {
             console.log();
             console.log('  Examples:');
             console.log();
+            // eslint-disable-next-line max-len
             console.log('    $ couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/');
+            // eslint-disable-next-line max-len
             console.log('    $ couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/file.yaml');
+            // eslint-disable-next-line max-len
             console.log('    $ couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/file.json');
         });
 

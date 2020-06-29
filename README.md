@@ -110,6 +110,7 @@ lifecycle:
 | partition          | N | For CB 5.5, object to specify index partitioning |
 | partition.exprs    | Y | Required if `partition` is present, array of strings for attributes used to create partition |
 | partition.stragegy | N | Partition strategy to use, defaults to `hash` |
+| partition.num_partition | N | Number of partitions, defaults to 8 |
 | manual_replica     | N | Force manual replica management, rather than using Couchbase 5.X automatic replicas. Automatically set to true for Couchbase 4.X. |
 | num_replica        | N | Defaults to 0, number of index replicas to create. |
 | nodes              | N | List of nodes for index placement.  Automatic placement is used if not present. |
@@ -138,6 +139,7 @@ Overrides are processed in the order they are found, and can only override index
 | partition          | N | For CB 5.5, object to specify index partitioning.  Use `null` to remove partition during override. |
 | partition.exprs    | N | Array of strings for attributes used to create partition, replaces the existing array. |
 | partition.stragegy | N | Partition strategy to use |
+| partition.num_partition | N | Number of partitions, defaults to 8 |
 | manual_replica     | N | Force manual replica management, rather than using Couchbase 5.X automatic replicas. Automatically set to true for Couchbase 4.X. |
 | num_replica        | N | Number of index replicas to create. |
 | nodes              | N | List of nodes for index placement. |

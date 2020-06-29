@@ -14,3 +14,4 @@ rules:
   no-console: "off"
   indent: "off"
   prefer-const: "off"
+  max-len: [2, 120]

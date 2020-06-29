@@ -15,6 +15,7 @@ import {FeatureVersions} from './feature-versions';
  * @typedef PartitionHash
  * @property {!array.string} exprs
  * @property {?string} strategy
+ * @property {?number} num_partition
  */
 
  /**
@@ -448,6 +449,13 @@ export class IndexDefinition extends IndexDefinitionBase {
             };
         }
 
+        if (this.partition && this.partition.num_partition) {
+            withClause = {
+                ...withClause,
+                num_partition: this.partition.num_partition,
+            };
+        }
+
         return withClause;
     }
 
@@ -499,6 +507,8 @@ export class IndexDefinition extends IndexDefinitionBase {
         return (index.condition || '') !== this.condition ||
             !_.isEqual(index.index_key, this.index_key) ||
             (index.partition || '') !== this.getPartitionString() ||
+            (this.partition && this.partition.num_partition &&
+                this.partition.num_partition !== index.num_partition) ||
             !!index.retain_deleted_xattr !== this.retain_deleted_xattr;
     }
 
@@ -533,7 +543,15 @@ export class IndexDefinition extends IndexDefinitionBase {
         this.index_key = (plan.keys || []).map((key) =>
             key.expr + (key.desc ? ' DESC' : ''));
         this.condition = plan.where || '';
-        this.partition = plan.partition;
+
+        if (plan.partition) {
+            this.partition = {
+                ...plan.partition,
+                num_partition: this.partition ? this.partition.num_partition : undefined,
+            };
+        } else {
+            this.partition = undefined;
+        }
     }
 
     /**

@@ -44,12 +44,24 @@ export class UpdateIndexMutation extends IndexMutation {
                     `     -> ${this.formatKeys(this.definition)}`));
         }
 
-        if (!isEqual(this.existingIndex.partition || '',
-            this.definition.getPartitionString())) {
-            logger.info(chalk.cyanBright(
-                `  Part: ${this.existingIndex.partition || 'none'}`));
-            logger.info(chalk.cyanBright(
-                `     -> ${this.definition.getPartitionString() || 'none'}`));
+        if (this.definition.partition || this.existingIndex.partition) {
+            if (!isEqual(this.existingIndex.partition || '',
+                this.definition.getPartitionString())) {
+                logger.info(chalk.cyanBright(
+                    `  Part: ${this.existingIndex.partition || 'none'}`));
+                logger.info(chalk.cyanBright(
+                    `     -> ${this.definition.getPartitionString() || 'none'}`));
+            }
+
+            if (this.definition.partition &&
+                this.definition.partition.num_partition &&
+                this.existingIndex.num_partition !==
+                    this.definition.partition.num_partition) {
+                logger.info(chalk.cyanBright(
+                    `# Part: ${this.existingIndex.num_partition}`));
+                logger.info(chalk.cyanBright(
+                    `     -> ${this.definition.partition.num_partition}`));
+            }
         }
 
         if (!isEqual(this.existingIndex.condition || '',
