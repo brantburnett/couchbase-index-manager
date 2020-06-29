@@ -196,7 +196,7 @@ On Couchbase Server 5.X, automatic index replica management is the default.  In 
 
 Note that for Couchbase Server 5.0 and 5.1, the `nodes` list is only respected during index creation. Indexes will not be moved between nodes if they already exist. Beginning with Couchbase Server 5.5 an ALTER INDEX command will be used to move replicas between nodes.
 
-Because ALTER INDEX cannot currently change the number of replicas, changes to `num_replica` or the number of nodes in `nodes` is an unsafe change that will drop and recreate the index.
+Because ALTER INDEX on Couchbase Server 6.0 and earlier cannot change the number of replicas, changes to `num_replica` or the number of nodes in `nodes` is an unsafe change that will drop and recreate the index. Starting with Couchbase Server 6.5 changing the number of replicas is a safe operation using ALTER INDEX.
 
 ## Docker Image
 
