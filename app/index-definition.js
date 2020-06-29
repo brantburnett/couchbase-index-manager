@@ -27,6 +27,7 @@ import {FeatureVersions} from './feature-versions';
  * @property {?boolean} manual_replica
  * @property {?number} num_replica
  * @property {?array.string} nodes
+ * @property {?boolean} retain_deleted_xattr
  * @property {?LifecycleHash} lifecycle
  */
 
@@ -155,6 +156,11 @@ export const IndexValidators = {
             throw new Error('num_replica must be a number');
         }
     },
+    retain_deleted_xattr: function(val) {
+        if (val !== undefined && !_.isBoolean(val)) {
+            throw new Error('retain_deleted_xattr must be a boolean');
+        }
+    },
     lifecycle: function(val) {
         if (val !== undefined && !_.isObjectLike(val)) {
             throw new Error('lifecycle is invalid');
@@ -240,6 +246,7 @@ const keys = {
             return val || 0;
         }
     },
+    retain_deleted_xattr: (val) => !!val,
     lifecycle: function(val) {
         if (!this.lifecycle) {
             this.lifecycle = {};
@@ -276,6 +283,7 @@ const keys = {
  * @property {!boolean} manual_replica
  * @property {!number} num_replica
  * @property {?array.string} nodes
+ * @property {!boolean} retain_deleted_xattr
  * @property {!LifecycleHash} lifecycle
  */
 export class IndexDefinition extends IndexDefinitionBase {
@@ -420,16 +428,27 @@ export class IndexDefinition extends IndexDefinitionBase {
      * @return {Object<string, *>}
      */
     getWithClause(replicaNum) {
+        let withClause;
+
         if (!this.manual_replica) {
-            return {
+            withClause = {
                 nodes: this.nodes ? this.nodes.map(ensurePort) : undefined,
                 num_replica: this.num_replica,
             };
         } else {
-            return {
+            withClause = {
                 nodes: this.nodes && [ensurePort(this.nodes[replicaNum])],
             };
         }
+
+        if (this.retain_deleted_xattr) {
+            withClause = {
+                ...withClause,
+                retain_deleted_xattr: true,
+            };
+        }
+
+        return withClause;
     }
 
     /**
@@ -479,7 +498,8 @@ export class IndexDefinition extends IndexDefinitionBase {
     requiresUpdate(index) {
         return (index.condition || '') !== this.condition ||
             !_.isEqual(index.index_key, this.index_key) ||
-            (index.partition || '') !== this.getPartitionString();
+            (index.partition || '') !== this.getPartitionString() ||
+            !!index.retain_deleted_xattr !== this.retain_deleted_xattr;
     }
 
     /**

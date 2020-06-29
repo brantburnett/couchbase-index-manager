@@ -116,6 +116,9 @@ export class IndexManager {
                 } else {
                     index.num_replica++;
                 }
+
+                index.retain_deleted_xattr =
+                    /"retain_deleted_xattr"\s*:\s*true/.test(status.definition);
             }
         });
 

@@ -54,6 +54,11 @@ export class CreateIndexMutation extends IndexMutation {
             logger.info(chalk.greenBright(
                 ` Nodes: ${this.withClause.nodes.join()}`));
         }
+
+        if (this.withClause.retain_deleted_xattr) {
+            logger.info(chalk.greenBright(
+                ' XATTR: true'));
+        }
     }
 
     /** @inheritDoc */
