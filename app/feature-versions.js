@@ -22,6 +22,18 @@ export class FeatureVersions {
     }
 
     /**
+     * Tests for ALTER INDEX replica_count compatibility
+     *
+     * @param  {Version} version
+     * @return {boolean}
+     */
+    static alterIndexReplicaCount(version) {
+        return version &&
+            (version.major > 6 ||
+            (version.major == 6 && version.minor >= 5));
+    }
+
+    /**
      * Tests for PARTITION BY compatibility
      *
      * @param  {Version} version

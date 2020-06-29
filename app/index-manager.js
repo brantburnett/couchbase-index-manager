@@ -168,6 +168,32 @@ export class IndexManager {
     }
 
     /**
+     * Moves index replicas been nodes
+     * @param {string} indexName
+     * @param {number} numReplica
+     * @param {?array.string} nodes
+     * @return {Promise}
+     */
+    resizeIndex(indexName, numReplica, nodes) {
+        let statement = 'ALTER INDEX ' +
+            `\`${this.bucketName}\`.\`${indexName}\`` +
+            ' WITH ';
+
+        let withClause = {
+            action: 'replica_count',
+            num_replica: numReplica,
+        };
+
+        if (nodes) {
+            withClause.nodes = nodes;
+        }
+
+        statement += JSON.stringify(withClause);
+
+        return this.cluster.query(statement);
+    }
+
+    /**
      * Builds any outstanding deferred indexes on the bucket
      * @return {Promise} Promise triggered once build is started (not completed)
      */

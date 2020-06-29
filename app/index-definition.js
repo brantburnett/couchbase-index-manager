@@ -4,6 +4,7 @@ import {CreateIndexMutation} from './create-index-mutation';
 import {UpdateIndexMutation} from './update-index-mutation';
 import {DropIndexMutation} from './drop-index-mutation';
 import {MoveIndexMutation} from './move-index-mutation';
+import {ResizeIndexMutation} from './resize-index-mutation';
 import {FeatureVersions} from './feature-versions';
 
 /**
@@ -401,9 +402,13 @@ export class IndexDefinition extends IndexDefinitionBase {
             // Number of replicas changed for an auto replica index
             // We must drop and recreate.
 
-            yield new UpdateIndexMutation(this, this.name + suffix,
-                this.getWithClause(replicaNum),
-                currentIndex);
+            if (FeatureVersions.alterIndexReplicaCount(context.clusterVersion)) {
+                yield new ResizeIndexMutation(this, this.name + suffix);
+            } else {
+                yield new UpdateIndexMutation(this, this.name + suffix,
+                    this.getWithClause(replicaNum),
+                    currentIndex);
+            }
         } else if (this.nodes && currentIndex.nodes) {
             // Check for required node changes
             currentIndex.nodes.sort();
