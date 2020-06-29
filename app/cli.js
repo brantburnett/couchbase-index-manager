@@ -18,7 +18,6 @@ function parseBaseOptions(cmd) {
         cluster: cmd.parent.cluster,
         username: cmd.parent.username,
         password: cmd.parent.password,
-        disableRbac: !cmd.parent.rbac,
     };
 }
 
@@ -59,7 +58,7 @@ export function run() {
             'Quiet output, only prints errors and warnings')
         .option(
             '--no-rbac',
-            'Disable RBAC for 4.x clusters')
+            '(Deprecated, no longer required) Disable RBAC for 4.x clusters')
         .option(
             '--no-color',
             'Supress color in output'); // Applied automatically by chalk
