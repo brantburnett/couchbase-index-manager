@@ -170,7 +170,10 @@ export const IndexValidators = {
     },
     post_validate: function() {
         if (!this.is_primary) {
-            if (!this.index_key || this.index_key.length === 0) {
+            const isDrop = this.lifecycle && this.lifecycle.drop;
+            console.log(`isDrop ${this.name}: ${isDrop}`);
+
+            if (!isDrop && (!this.index_key || this.index_key.length === 0)) {
                 throw new Error('index_key must include at least one key');
             }
         } else {
@@ -524,8 +527,8 @@ export class IndexDefinition extends IndexDefinitionBase {
      * @param  {IndexManager} manager
      */
     async normalize(manager) {
-        if (this.is_primary) {
-            // Not required for primary index
+        if (this.is_primary || (this.lifecycle && this.lifecycle.drop)) {
+            // Not required for primary index or drops
             return;
         }
 
