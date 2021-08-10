@@ -41,3 +41,7 @@ name: sg_roleAccess_x1
 index_key:
 - (all (array (`op`.`name`) for `op` in object_pairs((((meta().`xattrs`).`_sync`).`role_access`)) end))
 retain_deleted_xattr: false
+---
+name: oldIndex
+lifecycle:
+  drop: true

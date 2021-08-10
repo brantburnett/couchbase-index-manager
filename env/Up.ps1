@@ -1,7 +1,7 @@
 Param(
     [string]
     [Parameter(Position=0)]
-    $Version = "4.6.4"
+    $Version = "6.5.1"
 )
 
 if ($Version -match "^(\d+\.)*\d+$") {
