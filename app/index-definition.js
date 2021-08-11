@@ -171,7 +171,6 @@ export const IndexValidators = {
     post_validate: function() {
         if (!this.is_primary) {
             const isDrop = this.lifecycle && this.lifecycle.drop;
-            console.log(`isDrop ${this.name}: ${isDrop}`);
 
             if (!isDrop && (!this.index_key || this.index_key.length === 0)) {
                 throw new Error('index_key must include at least one key');
