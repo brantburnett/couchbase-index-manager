@@ -3,11 +3,11 @@ import chaiArrays from 'chai-arrays';
 import chaiThings from 'chai-things';
 import sinonChai from 'sinon-chai';
 import {stub} from 'sinon';
-import {IndexDefinition} from '../app/index-definition';
-import {UpdateIndexMutation} from '../app/update-index-mutation';
-import {CreateIndexMutation} from '../app/create-index-mutation';
-import {MoveIndexMutation} from '../app/move-index-mutation';
-import {ResizeIndexMutation} from '../app/resize-index-mutation';
+import {IndexDefinition} from './index-definition';
+import {UpdateIndexMutation} from './update-index-mutation';
+import {CreateIndexMutation} from './create-index-mutation';
+import {MoveIndexMutation} from './move-index-mutation';
+import {ResizeIndexMutation} from './resize-index-mutation';
 
 use(chaiArrays);
 use(chaiThings);

@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "target": "es6",
+    "outDir": "./dist",
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "importHelpers": true
+  },
+  "include": [
+    "./app/**/*"
+  ],
+  "exclude": [
+    "./app/**/*.spec.ts",
+    "./app/**/*.spec.js"
+  ]
+}
