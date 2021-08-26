@@ -32,6 +32,7 @@ export class IndexMutation {
      * @param {*} logger Logger to use for writing output
      */
     print(logger) {
+        // abstract
     }
 
     /**

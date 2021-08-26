@@ -7,9 +7,6 @@ import yaml from 'js-yaml';
 import {IndexDefinition, IndexValidators} from './index-definition';
 import {NodeMap, NodeMapValidators} from './node-map';
 
-// Ensure that promisify is available on Node 6
-require('util.promisify').shim();
-
 const lstat = util.promisify(fs.lstat);
 const readdir = util.promisify(fs.readdir);
 const readFile = util.promisify(fs.readFile);

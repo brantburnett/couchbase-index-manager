@@ -1,4 +1,6 @@
 node_modules
-test/**/!(*.test.js)
 dist
 testbin
+.eslintrc.js
+jest.config.js
+babel.config.js

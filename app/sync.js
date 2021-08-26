@@ -6,16 +6,6 @@ import {FeatureVersions} from './feature-versions';
 import {DefinitionLoader} from './definition-loader';
 
 /**
- * @typedef SyncOptions
- * @property {?boolean} safe Execute a safe synchronization
- * @property {?boolean} dryRun Execute a dry run only
- * @property {?boolean} interactive Print interactive information to logger
- * @property {?boolean} confirmationPrompt Confirma with user before execute
- * @property {?number} buildTimeout Milliseconds to wait for indexes to build
- * @property {?object} logger Logger for printing information
- */
-
-/**
  * Executes a synchronization, loading definitions from disk
  */
 export class Sync {
@@ -23,7 +13,7 @@ export class Sync {
      * @param {IndexManager} manager
      * @param {string | array.string} path
      *     Path or array of paths to files or directories with index definitions
-     * @param {SyncOptions} [options]
+     * @param {object} [options]
      */
     constructor(manager, path, options) {
         this.manager = manager;

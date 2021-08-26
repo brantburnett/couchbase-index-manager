@@ -7,7 +7,6 @@ import {IndexManager} from './index-manager';
  * @property {string} username
  * @property {string} password
  * @property {string} bucketName
- * @property {?string} bucketPassword For 4.x clusters with secure buckets
  */
 
 /**

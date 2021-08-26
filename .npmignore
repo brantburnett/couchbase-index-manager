@@ -3,8 +3,9 @@ app/
 .git*
 .eslint*
 .markdownlint*
-.babelrc
-gulpfile.js
+babel.config.js
+jest.config.js
+tsconfig.json
 example/
 Dockerfile
 .dockerignore

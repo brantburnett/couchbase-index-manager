@@ -3,15 +3,13 @@ import chaiArrays from 'chai-arrays';
 import chaiThings from 'chai-things';
 import sinonChai from 'sinon-chai';
 import {stub} from 'sinon';
-import {IndexDefinition} from '../app/index-definition';
-import {CreateIndexMutation} from '../app/create-index-mutation';
-import {Plan} from '../app/plan';
+import {IndexDefinition} from './index-definition';
+import {CreateIndexMutation} from './create-index-mutation';
+import {Plan} from './plan';
 
 use(chaiArrays);
 use(chaiThings);
 use(sinonChai);
-
-require('jasmine-co').install();
 
 const mockManager = {
     buildDeferredIndexes: () => Promise.resolve(),
@@ -20,10 +18,10 @@ const mockManager = {
 
 const planOptions = {
     logger: {
-        log: () => {},
-        error: () => {},
-        warn: () => {},
-        info: () => {},
+        log: () => { /* null logger */ },
+        error: () => { /* null logger */ },
+        warn: () => { /* null logger */ },
+        info: () => { /* null logger */ },
     },
     buildDelay: 0, // don't delay during unit tests
 };
@@ -99,8 +97,11 @@ describe('execute', function() {
 
         let plan = new Plan(mockManager, [first, second], planOptions);
 
-        await plan.execute()
-            .catch(() => {});
+        try {
+            await plan.execute()
+        } catch (_) {
+            // eat errors
+        }
 
         expect(secondStub)
             .to.be.calledOnce;
@@ -122,8 +123,11 @@ describe('execute', function() {
 
         let plan = new Plan(mockManager, [first, second], planOptions);
 
-        await plan.execute()
-            .catch(() => {});
+        try {
+            await plan.execute();
+        } catch (_) {
+            // eat errors
+        }
 
         expect(secondStub)
             .to.not.be.called;
