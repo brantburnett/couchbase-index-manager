@@ -1,24 +1,22 @@
-import {IndexMutation} from './index-mutation';
 import chalk from 'chalk';
+import { IndexDefinition } from '../index-definition';
+import { IndexManager, WithClause } from '../index-manager';
+import { IndexMutation } from './index-mutation';
+import { Logger } from '../options';
 
 /**
  * Represents an index mutation which is creating a new index
  */
 export class CreateIndexMutation extends IndexMutation {
-    /**
-     * @param {IndexDefinition} definition Index definition
-     * @param {?string} name Name fo the index to mutate
-     * @param {?Object<string, *>} withClause
-     *     Additional clauses for index creation
-     */
-    constructor(definition, name, withClause) {
+    public withClause: WithClause;
+
+    constructor(definition: IndexDefinition, name?: string, withClause?: WithClause) {
         super(definition, name);
 
         this.withClause = withClause || {};
     }
 
-    /** @inheritDoc */
-    print(logger) {
+    print(logger: Logger): void {
         logger.info(chalk.greenBright(`Create: ${this.name}`));
 
         if (this.definition.is_primary) {
@@ -67,11 +65,10 @@ export class CreateIndexMutation extends IndexMutation {
         }
     }
 
-    /** @inheritDoc */
-    async execute(indexManager, logger) {
+    async execute(indexManager: IndexManager, logger: Logger): Promise<void> {
         logger.info(chalk.greenBright(`Creating ${this.name}...`));
 
-        let statement = this.definition.getCreateStatement(
+        const statement = this.definition.getCreateStatement(
             indexManager.bucketName, this.name, this.withClause
         );
 

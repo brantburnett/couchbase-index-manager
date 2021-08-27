@@ -3,7 +3,7 @@ import chaiArrays from 'chai-arrays';
 import chaiThings from 'chai-things';
 import sinonChai from 'sinon-chai';
 import {stub} from 'sinon';
-import {IndexDefinition} from './index-definition';
+import {IndexDefinition} from '../index-definition';
 import {CreateIndexMutation} from './create-index-mutation';
 import {Plan} from './plan';
 

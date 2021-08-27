@@ -1,36 +1,25 @@
-import {IndexMutation} from './index-mutation';
-import {CreateIndexMutation} from './create-index-mutation';
-import {DropIndexMutation} from './drop-index-mutation';
 import chalk from 'chalk';
-import {isEqual} from 'lodash';
+import { isEqual } from 'lodash';
+import { CreateIndexMutation } from './create-index-mutation';
+import { DropIndexMutation } from './drop-index-mutation';
+import { IndexDefinition } from '../index-definition';
+import { CouchbaseIndex, IndexManager, WithClause } from '../index-manager';
+import { IndexMutation } from './index-mutation';
+import { Logger } from '../options';
 
 /**
- * @typedef CouchbaseIndex
- * @property {string} name
- * @property {array.string} index_key
- * @property {?string} condition
- */
-
- /**
  * Represents an index mutation which updates an existing index
  */
 export class UpdateIndexMutation extends IndexMutation {
-    /**
-     * @param {IndexDefinition} definition Index definition
-     * @param {?string} name Name fo the index to mutate
-     * @param {?Object<string, *>} withClause
-     *     Additional clauses for index creation
-     * @param {CouchbaseIndex} existingIndex
-     */
-    constructor(definition, name, withClause, existingIndex) {
+    private withClause: WithClause;
+
+    constructor(definition: IndexDefinition, name: string, withClause: WithClause, private existingIndex: CouchbaseIndex) {
         super(definition, name);
 
         this.withClause = withClause || {};
-        this.existingIndex = existingIndex;
     }
 
-    /** @inheritDoc */
-    print(logger) {
+    print(logger: Logger): void {
         logger.info(
             chalk.cyanBright(
                 `Update: ${this.name}`));
@@ -74,8 +63,8 @@ export class UpdateIndexMutation extends IndexMutation {
                     `     -> ${this.definition.condition || 'none'}`));
         }
 
-        let hasReplica = Math.max(this.definition.num_replica,
-                                  this.existingIndex.num_replica) > 0;
+        const hasReplica = Math.max(this.definition.num_replica,
+                                    this.existingIndex.num_replica) > 0;
         if (!this.definition.manual_replica && hasReplica) {
             logger.info(
                 chalk.cyanBright(
@@ -100,29 +89,24 @@ export class UpdateIndexMutation extends IndexMutation {
     }
 
     /** @inheritDoc */
-    async execute(manager, logger) {
-        let dropMutation =
+    async execute(manager: IndexManager, logger: Logger): Promise<void> {
+        const dropMutation =
             new DropIndexMutation(this.definition, this.name);
         await dropMutation.execute(manager, logger);
 
-        let createMutation = new CreateIndexMutation(
+        const createMutation = new CreateIndexMutation(
             this.definition, this.name, this.withClause);
         await createMutation.execute(manager, logger);
     }
 
     /**
-     * @private
      * Formats a list of keys for human readable output
-     *
-     * @param {{index_key: array.string}} index
-     * @return {string}
      */
-    formatKeys(index) {
+    private formatKeys(index: { index_key: string[] }): string {
         return index.index_key.join(',');
     }
 
-    /** @inheritDoc */
-    isSafe() {
+    isSafe(): boolean {
         // Safe if there are multiple replicas
         // As each update will run in its own phase
         return this.definition.manual_replica &&

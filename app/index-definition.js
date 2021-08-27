@@ -1,23 +1,12 @@
 import _ from 'lodash';
 import { IndexDefinitionBase } from './index-definition-base';
-import { CreateIndexMutation } from './create-index-mutation';
-import { UpdateIndexMutation } from './update-index-mutation';
-import { DropIndexMutation } from './drop-index-mutation';
-import { MoveIndexMutation } from './move-index-mutation';
-import { ResizeIndexMutation } from './resize-index-mutation';
+import { CreateIndexMutation } from './plan/create-index-mutation';
+import { UpdateIndexMutation } from './plan/update-index-mutation';
+import { DropIndexMutation } from './plan/drop-index-mutation';
+import { MoveIndexMutation } from './plan/move-index-mutation';
+import { ResizeIndexMutation } from './plan/resize-index-mutation';
 import { FeatureVersions } from './feature-versions';
 import { IndexValidators } from './configuration/index-validation';
-
-/**
- * @typedef CouchbaseIndex
- * @property {string} name
- * @property {array.string} index_key
- * @property {?string} condition
- * @property {?string} partition
- * @property {?boolean} is_primary
- * @property {?number} num_replica
- * @property {?array.string} nodes
- */
 
  /**
   * @typedef MutationContext
@@ -144,6 +133,16 @@ const keys = {
  * @property {!LifecycleHash} lifecycle
  */
 export class IndexDefinition extends IndexDefinitionBase {
+    is_primary;
+    index_key;
+    condition;
+    partition;
+    manual_replica;
+    num_replica;
+    nodes;
+    retain_deleted_xattr;
+    lifecycle;
+
      /**
      * Creates a new IndexDefinition from a simple object map
      *

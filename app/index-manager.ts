@@ -6,10 +6,11 @@ const WAIT_TICK_INTERVAL = 10000; // in milliseconds
 
 export type TickHandler<T> = (this: T, timePassed: number) => void;
 
-interface WithClause {
+export interface WithClause {
     action?: string;
     num_replica?: number;
     nodes?: string[];
+    retain_deleted_xattr?: boolean;
 }
 
 interface SystemIndexesIndex {
@@ -19,6 +20,7 @@ interface SystemIndexesIndex {
     keyspace_id: string;
     is_primary?: boolean;
     index_key: string[];
+    condition?: string;
     partition: string;
     state: string;
     using: string;
