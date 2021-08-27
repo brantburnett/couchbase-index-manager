@@ -1,0 +1,10 @@
+export { Sync } from './sync';
+export { Plan } from './plan/plan';
+export { IndexDefinition, NodeMap } from './definition';
+export { IndexMutation } from './plan/index-mutation';
+export { CreateIndexMutation } from './plan/create-index-mutation';
+export { DropIndexMutation } from './plan/drop-index-mutation';
+export { MoveIndexMutation } from './plan/move-index-mutation';
+export { UpdateIndexMutation } from './plan/update-index-mutation';
+export { IndexManager } from './index-manager';
+export { SyncOptions, ValidateOptions, Logger } from './options';

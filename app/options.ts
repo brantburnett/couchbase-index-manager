@@ -1,9 +1,13 @@
-export interface Options {
+export interface SyncOptions {
     interactive: boolean;
     confirmationPrompt: boolean;
     dryRun: boolean;
     safe: boolean;
     buildTimeout: number;
+    logger?: Logger;
+}
+
+export interface ValidateOptions {
     logger?: Logger;
 }
 
