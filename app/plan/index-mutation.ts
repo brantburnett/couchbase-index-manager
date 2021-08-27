@@ -1,4 +1,4 @@
-import { IndexDefinition } from "../index-definition";
+import { IndexDefinition } from "../definition";
 import { IndexManager } from "../index-manager";
 import { Logger } from "../options";
 

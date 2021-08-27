@@ -1,26 +1,40 @@
 import _ from 'lodash';
 import { IndexDefinitionBase } from './index-definition-base';
-import { CreateIndexMutation } from './plan/create-index-mutation';
-import { UpdateIndexMutation } from './plan/update-index-mutation';
-import { DropIndexMutation } from './plan/drop-index-mutation';
-import { MoveIndexMutation } from './plan/move-index-mutation';
-import { ResizeIndexMutation } from './plan/resize-index-mutation';
-import { FeatureVersions } from './feature-versions';
-import { IndexValidators } from './configuration/index-validation';
+import { CreateIndexMutation } from '../plan/create-index-mutation';
+import { UpdateIndexMutation } from '../plan/update-index-mutation';
+import { DropIndexMutation } from '../plan/drop-index-mutation';
+import { MoveIndexMutation } from '../plan/move-index-mutation';
+import { ResizeIndexMutation } from '../plan/resize-index-mutation';
+import { FeatureVersions, Version } from '../feature-versions';
+import { IndexValidators } from '../configuration/index-validation';
+import { CouchbaseIndex, IndexManager, WithClause } from '../index-manager';
+import { IndexConfiguration, IndexConfigurationBase, Lifecycle, Partition, PartitionStrategy, PostProcessHandler } from '../configuration';
+import { IndexMutation } from '../plan/index-mutation';
 
- /**
-  * @typedef MutationContext
-  * @property {array.CouchbaseIndex} currentIndexes
-  * @property {?{major: number, minor: number}} clusterVersion
-  */
+export interface MutationContext {
+    currentIndexes: CouchbaseIndex[];
+    clusterVersion?: Version;
+}
+
+/**
+ * Subset of fields returned on a query plan for CREATE INDEX
+ */
+interface IndexCreatePlan {
+    keys: {
+        expr: string
+        desc: boolean;
+    }[];
+    where?: string;
+    partition?: {
+        exprs: string[];
+        strategy: PartitionStrategy;
+    }
+}
 
 /**
  * Ensures that the N1QL identifier is escaped with backticks
- *
- * @param  {!string} identifier
- * @return {!string}
  */
-function ensureEscaped(identifier) {
+function ensureEscaped(identifier: string): string {
     if (!identifier.startsWith('`')) {
         return '`' + identifier.replace(/`/g, '``') + '`';
     } else {
@@ -30,10 +44,8 @@ function ensureEscaped(identifier) {
 
 /**
  * Ensures that a server name has a port number appended, defaults to 8091
- * @param  {string} server
- * @return {string}
  */
-function ensurePort(server) {
+function ensurePort(server: string): string {
     if (server.match(/:\d+$/)) {
         return server;
     } else {
@@ -41,23 +53,37 @@ function ensurePort(server) {
     }
 }
 
+type KeyProcessor<T> = (this: IndexDefinition, val: any) => T | undefined;
+
+type KeyProcessorSet = {
+    [key in keyof IndexConfigurationBase]?: KeyProcessor<IndexConfigurationBase[key]>;
+}
+
+function processKey<K extends keyof IndexConfigurationBase>(index: IndexConfigurationBase, key: K,
+    processor: KeyProcessor<IndexConfigurationBase[K]>, initialValue: any) {
+
+    const result = processor.call(index, initialValue);
+
+    if (result !== undefined) {
+        index[key] = result;
+    }
+}
+
 /**
- * @type Object<string, function(*)>
- *
  * Map of processing functions to handle hash keys.
  * "this" when the function is called will be the IndexDefinition.
  * If a value is returned, it is assigned to the key.
  * If "undefined" is returned, it assumed that the handler
  * processed the value completely.
  */
-const keys = {
-    is_primary: (val) => !!val,
-    index_key: (val) => !val ? [] :
+const keys: KeyProcessorSet = {
+    is_primary: (val: any) => !!val,
+    index_key: (val: any) => !val ? [] :
         _.isString(val) ?
             _.compact([val]) :
             Array.from(val),
-    condition: (val) => val || '',
-    partition: function(val) {
+    condition: (val: any) => val || '',
+    partition: function(this: IndexDefinition, val: any) {
         // For overrides, ignore undefined
         // But clear the entire value if null
 
@@ -65,15 +91,16 @@ const keys = {
             if (!val) {
                 this.partition = undefined;
             } else {
-                if (!this.partition) {
-                    this.partition = {};
-                }
-
-                _.extend(this.partition, val);
+                this.partition = {
+                    ...this.partition,
+                    ...val
+                };
             }
         }
+
+        return undefined;
     },
-    nodes: function(val) {
+    nodes: function(this: IndexDefinition, val: any) {
         this.nodes = val;
 
         // for partitioned index, num_replica and nodes
@@ -81,9 +108,11 @@ const keys = {
         if (val && val.length && !this.partition) {
             this.num_replica = val.length-1;
         }
+
+        return undefined;
     },
-    manual_replica: (val) => !!val,
-    num_replica: function(val) {
+    manual_replica: (val: any) => !!val,
+    num_replica: function(this: IndexDefinition, val: any) {
         if (!this.partition) {
             return val || (this.nodes ? this.nodes.length-1 : 0);
         } else {
@@ -92,8 +121,8 @@ const keys = {
             return val || 0;
         }
     },
-    retain_deleted_xattr: (val) => !!val,
-    lifecycle: function(val) {
+    retain_deleted_xattr: (val: any) => !!val,
+    lifecycle: function(this: IndexDefinition, val: any) {
         if (!this.lifecycle) {
             this.lifecycle = {};
         }
@@ -101,87 +130,68 @@ const keys = {
         if (val) {
             _.extend(this.lifecycle, val);
         }
+
+        return undefined;
     },
-    post_process: function(val) {
-        let fn;
+    post_process: function(this: IndexDefinition, val: any) {
+        let fn: PostProcessHandler;
 
         if (_.isFunction(val)) {
-            fn = () => {
-                val.call(this);
-            };
+            fn = val;
         } else if (_.isString(val)) {
-            fn = new Function('require', 'process', val);
+            fn = new Function('require', 'process', val) as PostProcessHandler;
         }
 
         if (fn) {
             fn.call(this, require, process);
         }
+
+        return undefined;
     },
 };
 
 /**
  * Represents an index
- * @property {!string} name
- * @property {!boolean} is_primary
- * @property {!array.string} index_key
- * @property {?string} condition
- * @property {?PartitionHash} partition
- * @property {!boolean} manual_replica
- * @property {!number} num_replica
- * @property {?array.string} nodes
- * @property {!boolean} retain_deleted_xattr
- * @property {!LifecycleHash} lifecycle
  */
-export class IndexDefinition extends IndexDefinitionBase {
-    is_primary;
-    index_key;
-    condition;
-    partition;
-    manual_replica;
-    num_replica;
-    nodes;
-    retain_deleted_xattr;
-    lifecycle;
+export class IndexDefinition extends IndexDefinitionBase implements IndexConfigurationBase {
+    is_primary: boolean;
+    index_key: string[];
+    condition?: string;
+    partition?: Partition;
+    manual_replica: boolean;
+    num_replica: number;
+    nodes?: string[];
+    retain_deleted_xattr: boolean;
+    lifecycle?: Lifecycle;
+    post_process?: PostProcessHandler;
 
-     /**
+    /**
      * Creates a new IndexDefinition from a simple object map
-     *
-     * @param  {IndexDefinitionHash} hashMap
      */
-    constructor(hashMap) {
-        super(hashMap);
+    constructor(configuration: IndexConfiguration) {
+        super(configuration);
 
-        this.applyOverride(hashMap, true);
+        this.applyOverride(configuration, true);
     }
 
     /**
      * Creates a new IndexDefinition from a simple object map
-     *
-     * @param  {IndexDefinitionHash} obj
-     * @return {IndexDefinition}
      */
-    static fromObject(obj) {
-        return new IndexDefinition(obj);
+    static fromObject(configuration: IndexConfiguration): IndexDefinition {
+        return new IndexDefinition(configuration);
     }
 
     /**
      * Apply overrides to the index definition
-     *
-     * @param {*} override
-     * @param {?boolean} applyMissing Overwrite values even if they are
-     *     missing from the overrides object
      */
-    applyOverride(override, applyMissing) {
+    applyOverride(override: IndexConfigurationBase, applyMissing?: boolean): void {
         // Process the keys
-        Object.keys(keys).forEach((key) => {
+        let key: keyof typeof keys;
+        for (key in keys) {
             if (applyMissing || override[key] !== undefined) {
-                let result = keys[key].call(this, override[key]);
-
-                if (result !== undefined) {
-                    this[key] = result;
-                }
+                processKey(this, key, keys[key], override[key]);
             }
-        });
+        }
 
         // Validate the resulting defintion
         IndexValidators.post_validate.call(this);
@@ -189,14 +199,11 @@ export class IndexDefinition extends IndexDefinitionBase {
 
     /**
      * Gets the required index mutations, if any, to sync this definition
-     *
-     * @param  {MutationContext} context
-     * @yields {IndexMutation}
      */
-    * getMutations(context) {
+    * getMutations(context: MutationContext): Iterable<IndexMutation> {
         this.normalizeNodeList(context.currentIndexes);
 
-        let mutations = [];
+        const mutations = [];
 
         if (!this.manual_replica) {
             mutations.push(...this.getMutation(context));
@@ -219,24 +226,16 @@ export class IndexDefinition extends IndexDefinitionBase {
         yield* mutations;
     }
 
-    /**
-     * @private
-     * @param  {MutationContext} context
-     * @param  {?number} replicaNum
-     * @param  {?boolean} forceDrop Always drop, even if lifecycle.drop = false.
-     *     Used for replicas.
-     * @yields {IndexMutation}
-     */
-    * getMutation(context, replicaNum, forceDrop) {
-        let suffix = !replicaNum ?
+    private * getMutation(context: MutationContext, replicaNum?: number, forceDrop?: boolean): Iterable<IndexMutation> {
+        const suffix = !replicaNum ?
             '' :
             `_replica${replicaNum}`;
 
-        let currentIndex = context.currentIndexes.find((index) => {
+        const currentIndex = context.currentIndexes.find((index) => {
             return this.isMatch(index, suffix);
         });
 
-        let drop = forceDrop || this.lifecycle.drop;
+        const drop = forceDrop || this.lifecycle.drop;
 
         if (!currentIndex) {
             // Index isn't found
@@ -282,13 +281,8 @@ export class IndexDefinition extends IndexDefinitionBase {
         }
     }
 
-    /**
-     * @private
-     * @param  {?number} replicaNum
-     * @return {Object<string, *>}
-     */
-    getWithClause(replicaNum) {
-        let withClause;
+    private getWithClause(replicaNum?: number): WithClause {
+        let withClause: WithClause;
 
         if (!this.manual_replica) {
             withClause = {
@@ -320,15 +314,13 @@ export class IndexDefinition extends IndexDefinitionBase {
 
     /**
      * Formats the PartitionHash as a string
-     *
-     * @return {string}
      */
-    getPartitionString() {
+    getPartitionString(): string {
         if (!this.partition) {
             return '';
         }
 
-        let str = `${(this.partition.strategy || 'HASH').toUpperCase()}(`;
+        let str = `${(this.partition.strategy || PartitionStrategy.Hash).toUpperCase()}(`;
         str += this.partition.exprs.join();
         str += ')';
 
@@ -336,14 +328,9 @@ export class IndexDefinition extends IndexDefinitionBase {
     }
 
     /**
-     * @private
      * Tests to see if a Couchbase index matches this definition
-     *
-     * @param  {CouchbaseIndex} index
-     * @param  {?string} suffix Optional suffix to append
-     * @return {boolean}
      */
-    isMatch(index, suffix) {
+    private isMatch(index: CouchbaseIndex, suffix?: string): boolean {
         if (this.is_primary) {
             // Consider any primary index a match, regardless of name
             return index.is_primary;
@@ -355,14 +342,10 @@ export class IndexDefinition extends IndexDefinitionBase {
     }
 
     /**
-     * @private
      * Tests to see if a Couchbase index requires updating,
      * ignoring node changes which are handled separately.
-     *
-     * @param {CouchbaseIndex} index
-     * @return {boolean}
      */
-    requiresUpdate(index) {
+    private requiresUpdate(index: CouchbaseIndex): boolean {
         return (index.condition || '') !== this.condition ||
             !_.isEqual(index.index_key, this.index_key) ||
             (index.partition || '') !== this.getPartitionString() ||
@@ -374,10 +357,8 @@ export class IndexDefinition extends IndexDefinitionBase {
     /**
      * Normalizes the index definition using Couchbase standards
      * for condition and index_key.
-     *
-     * @param  {IndexManager} manager
      */
-    async normalize(manager) {
+    async normalize(manager: IndexManager): Promise<void> {
         if (this.is_primary || (this.lifecycle && this.lifecycle.drop)) {
             // Not required for primary index or drops
             return;
@@ -388,10 +369,10 @@ export class IndexDefinition extends IndexDefinitionBase {
         // However, we must use a special index name to prevent rejection
         // due to name conflicts.
 
-        let statement =
+        const statement =
             this.getCreateStatement(manager.bucketName, '__cbim_normalize');
 
-        let plan;
+        let plan: IndexCreatePlan;
         try {
             plan = await manager.getQueryPlan(statement);
         } catch (e) {
@@ -415,16 +396,16 @@ export class IndexDefinition extends IndexDefinitionBase {
 
     /**
      * Formats a CREATE INDEX query which makes this index
-     *
-     * @param {string} bucketName
-     * @param {string} [indexName]
-     * @param {Object<string, *>} [withClause]
-     * @return {string}
      */
-    getCreateStatement(bucketName, indexName, withClause) {
-        if (withClause === undefined && !_.isString(indexName)) {
-            withClause = indexName;
-            indexName = undefined;
+    getCreateStatement(bucketName: string): string;
+    getCreateStatement(bucketName: string, withClause: WithClause): string;
+    getCreateStatement(bucketName: string, indexName: string, withClause?: WithClause): string;
+    getCreateStatement(bucketName: string, indexNameOrWithClause?: string | WithClause, withClause?: WithClause): string {
+        let indexName: string | undefined;
+        if (!_.isString(indexNameOrWithClause)) {
+            withClause = indexNameOrWithClause;
+        } else {
+            indexName = indexNameOrWithClause;
         }
 
         indexName = ensureEscaped(indexName || this.name);
@@ -470,33 +451,30 @@ export class IndexDefinition extends IndexDefinitionBase {
     }
 
     /**
-     * @private
      * Apply phases to the collection of index mutations
-     *
-     * @param {array.IndexMutation} mutations
      */
-    static phaseMutations(mutations) {
+    private static phaseMutations(mutations: IndexMutation[]): void {
         // All creates should be in phase one
         // All updates should be in one phase each, after creates
         // Everything else should be in the last phase
         // This is relative to each index definition only
 
         let nextPhase = 1;
-        for (let mutation of mutations) {
+        for (const mutation of mutations) {
             if (mutation instanceof CreateIndexMutation) {
                 nextPhase = 2;
                 mutation.phase = 1;
             }
         }
 
-        for (let mutation of mutations) {
+        for (const mutation of mutations) {
             if (mutation instanceof UpdateIndexMutation) {
                 mutation.phase = nextPhase;
                 nextPhase += 1;
             }
         }
 
-        for (let mutation of mutations) {
+        for (const mutation of mutations) {
             if (!(mutation instanceof CreateIndexMutation) &&
                 !(mutation instanceof UpdateIndexMutation)) {
                 mutation.phase = nextPhase;
@@ -505,14 +483,11 @@ export class IndexDefinition extends IndexDefinitionBase {
     }
 
     /**
-     * @private
      * Ensures that the node list has port numbers and is sorted in the same
      * order as the current indexes.  This allows easy matching of existing
      * node assignments, reducing reindex load due to minor node shifts.
-     *
-     * @param {array.CouchbaseIndex} currentIndexes
      */
-    normalizeNodeList(currentIndexes) {
+    private normalizeNodeList(currentIndexes: CouchbaseIndex[]): void {
         if (!this.nodes) {
             return;
         }
@@ -524,20 +499,20 @@ export class IndexDefinition extends IndexDefinitionBase {
             // We only care about specific node mappings for manual replicas
             // For auto replicas we let Couchbase handle it
 
-            let newNodeList = [];
-            let unused = _.clone(this.nodes);
+            const newNodeList = [];
+            const unused = _.clone(this.nodes);
 
             for (let replicaNum=0; replicaNum<=this.num_replica; replicaNum++) {
-                let suffix = !replicaNum ?
+                const suffix = !replicaNum ?
                     '' :
                     `_replica${replicaNum}`;
 
-                let index = currentIndexes.find((index) => {
+                    const index = currentIndexes.find((index) => {
                     return this.isMatch(index, suffix);
                 });
 
                 if (index && index.nodes) {
-                    let unusedIndex = unused.findIndex(
+                    const unusedIndex = unused.findIndex(
                         (name) => name === index.nodes[0]);
 
                     if (unusedIndex >= 0) {

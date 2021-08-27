@@ -8,10 +8,6 @@ export enum ConfigurationType {
     NodeMap = "nodeMap",
 }
 
-export interface ConfigurationItem {
-    type?: ConfigurationType;
-}
-
 export interface Lifecycle {
     drop?: boolean;
 }
@@ -22,7 +18,10 @@ export interface Partition {
     num_partition?: number;
 }
 
+export type PostProcessHandler = (this: IndexConfigurationBase, require: NodeRequire, process: NodeJS.Process) => void;
+
 export interface IndexConfigurationBase {
+    name?: string;
     is_primary?: boolean;
     index_key?: string | string[];
     condition?: string;
@@ -32,19 +31,32 @@ export interface IndexConfigurationBase {
     nodes?: string[];
     retain_deleted_xattr?: boolean;
     lifecycle?: Lifecycle;
+    post_process?: string | PostProcessHandler;
 }
 
-export interface IndexConfiguration extends IndexConfigurationBase {
+export interface IndexConfiguration extends Exclude<IndexConfigurationBase, "post_process"> {
     type: ConfigurationType.Index;
-    name: string;
 }
 
 export interface OverrideConfiguration extends IndexConfigurationBase {
-    type: ConfigurationType.NodeMap;
-    post_process?: string | (() => void);
+    type: ConfigurationType.Override;
 }
 
-export interface NodeMapConfiguration extends ConfigurationItem {
+export interface NodeMapConfiguration {
     type: ConfigurationType.NodeMap;
     map: { [key: string]: string }
+}
+
+export type ConfigurationItem = IndexConfiguration | OverrideConfiguration | NodeMapConfiguration;
+
+export function isIndex(item: ConfigurationItem): item is IndexConfiguration {
+    return item.type === ConfigurationType.Index;
+}
+
+export function isOverride(item: ConfigurationItem): item is OverrideConfiguration {
+    return item.type === ConfigurationType.Override;
+}
+
+export function isNodeMap(item: ConfigurationItem): item is NodeMapConfiguration {
+    return item.type === ConfigurationType.NodeMap;
 }

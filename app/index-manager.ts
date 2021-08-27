@@ -10,6 +10,7 @@ export interface WithClause {
     action?: string;
     num_replica?: number;
     nodes?: string[];
+    num_partition?: number;
     retain_deleted_xattr?: boolean;
 }
 

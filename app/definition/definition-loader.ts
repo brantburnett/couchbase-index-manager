@@ -6,7 +6,9 @@ import util from 'util';
 import yaml from 'js-yaml';
 import { IndexDefinition } from './index-definition';
 import { NodeMap } from './node-map';
-import { ConfigurationType, IndexValidators, NodeMapValidators } from './configuration';
+import { ConfigurationItem, ConfigurationType, IndexConfiguration, IndexConfigurationBase, IndexValidators, isIndex, isNodeMap, isOverride, NodeMapConfiguration, NodeMapValidators, ValidatorSet } from '../configuration';
+import { Logger } from '../options';
+import { Validator } from '../validator';
 
 const lstat = util.promisify(fs.lstat);
 const readdir = util.promisify(fs.readdir);
@@ -14,43 +16,52 @@ const readFile = util.promisify(fs.readFile);
 
 const INDEX_EXTENSIONS = ['.json', '.yaml', '.yml'];
 
-/**
- * Set of validators, keyed by type and then by property.  Each validator
- * may throw an exception if that property is in error.  First parameter
- * is the value of that property.  "this" will be the definition.
- *
- * May also include a "post_validate" validator, which is called last
- * and without a parameter.  This validator is used to validate the object
- * as a whole, to ensure property values compatible with each other.
- */
-const validatorSets = {
-    [ConfigurationType.NodeMap]: NodeMapValidators,
-    [ConfigurationType.Index]: IndexValidators,
-};
+type ConfigItemHandler = (item: ConfigurationItem) => void;
+
+function validateDefinition<T>(validatorSet: ValidatorSet<T>, definition: T) {
+    let key: keyof ValidatorSet<T>;
+    for (key in validatorSet) {
+        try {
+            if (key !== 'post_validate') {
+                validatorSet[key].call(definition, definition[key]);
+            }
+        } catch (e) {
+            throw new Error(
+                `${e} in ${(definition as any).name || 'unk'}.${key}`);
+        }
+    }
+
+    // Don't perform post_validate step on overrides, as overrides
+    // don't have the full set of properties.
+    if (validatorSet.post_validate && !isOverride(definition as unknown as ConfigurationItem)) {
+        try {
+            validatorSet.post_validate.call(definition);
+        } catch (e) {
+            throw new Error(
+                `${e} in ${(definition as any).name || 'unk'}`);
+        }
+    }
+}
 
 /**
  * Loads index definitions from disk or stdin
  */
 export class DefinitionLoader {
-    /**
-     * @param {any} [logger]
-     */
-    constructor(logger) {
+    private logger: Logger;
+
+    constructor(logger?: Logger) {
         this.logger = logger || console;
     }
 
     /**
      * Loads definitions from disk
-     *
-     * @param  {array.string} paths
-     * @return {{definitions: array.IndexDefinition, nodeMap: NodeMap}}
      */
-    async loadDefinitions(paths) {
-        let definitions = [];
-        let nodeMap = new NodeMap();
+    async loadDefinitions(paths: string[]): Promise<{ definitions: IndexDefinition[], nodeMap: NodeMap }> {
+        const definitions: IndexDefinition[] = [];
+        const nodeMap = new NodeMap();
 
         let files = [];
-        for (let filePath of paths) {
+        for (const filePath of paths) {
             if (filePath === '-') {
                 // read from stdin
                 await this.loadFromStdIn(
@@ -61,8 +72,8 @@ export class DefinitionLoader {
 
             try {
                 if ((await lstat(filePath)).isDirectory()) {
-                    let filesInDir = await readdir(filePath);
-                    let joinedFilesInDir = filesInDir.map(
+                    const filesInDir = await readdir(filePath);
+                    const joinedFilesInDir = filesInDir.map(
                         (fileName) => path.join(filePath, fileName));
 
                     files.push(...joinedFilesInDir);
@@ -90,31 +101,24 @@ export class DefinitionLoader {
     }
 
     /**
-     * @private
      * Loads index definitions from a file
-     *
-     * @param {string} filename File to read
-     * @param {function(*)} handler Handler for loaded definitions
      */
-    async loadDefinition(filename, handler) {
-        let ext = path.extname(filename).toLowerCase();
-        let contents = await readFile(filename, 'utf8');
+    private async loadDefinition(filename: string, handler: ConfigItemHandler): Promise<void> {
+        const ext = path.extname(filename).toLowerCase();
+        const contents = await readFile(filename, 'utf8');
 
         if (ext === '.json') {
             handler(JSON.parse(contents));
         } else if (ext === '.yaml' || ext === '.yml') {
-            yaml.safeLoadAll(contents, handler);
+            yaml.loadAll(contents, handler);
         }
     }
 
     /**
      * @private
      * Loads index definitions from stdin
-     *
-     * @param {function(IndexDefinition)} handler Handler for loaded definitions
-     * @return {Promise}
      */
-    loadFromStdIn(handler) {
+    private loadFromStdIn(handler: ConfigItemHandler): Promise<void> {
         return new Promise((resolve, reject) => {
             process.stdin.resume();
             process.stdin.setEncoding('utf8');
@@ -131,7 +135,7 @@ export class DefinitionLoader {
                         handler(JSON.parse(data));
                     } else {
                         // Assume it's YAML
-                        yaml.safeLoadAll(data, handler);
+                        yaml.loadAll(data, handler);
                     }
 
                     resolve();
@@ -143,16 +147,11 @@ export class DefinitionLoader {
     }
 
     /**
-     * @private
      * Processes a definition and adds to the current definitions or
      *     applies overrides to the matching definition
-     *
-     * @param {array.IndexDefinition} definitions Current definitions
-     * @param {NodeMap} nodeMap Current node map
-     * @param {*} definition New definition to process
      */
-    processDefinition(definitions, nodeMap, definition) {
-        let match = definitions.find((p) => p.name === definition.name);
+    private processDefinition(definitions: IndexDefinition[], nodeMap: NodeMap, definition: ConfigurationItem): void {
+        const match = definitions.find((p) => p.name === (definition as any).name);
 
         if (definition.type === undefined) {
             definition.type = ConfigurationType.Index;
@@ -160,13 +159,13 @@ export class DefinitionLoader {
 
         this.validateDefinition(definition, match);
 
-        if (definition.type === ConfigurationType.NodeMap) {
+        if (isNodeMap(definition)) {
             if (definition.map && isObjectLike(definition.map)) {
                 nodeMap.merge(definition.map);
             } else {
                 throw new Error('Invalid nodeMap');
             }
-        } else if (definition.type === ConfigurationType.Override) {
+        } else if (isOverride(definition)) {
             // Override definition
             if (match) {
                 match.applyOverride(definition);
@@ -176,7 +175,7 @@ export class DefinitionLoader {
                     chalk.yellowBright(
                         `No index definition found '${definition.name}'`));
             }
-        } else if (definition.type === ConfigurationType.Index) {
+        } else if (isIndex(definition)) {
             // Regular index definition
 
             if (match) {
@@ -186,52 +185,32 @@ export class DefinitionLoader {
 
             definitions.push(new IndexDefinition(definition));
         } else {
-            throw new Error(`Unknown definition type '${definition.type}'`);
+            throw new Error(`Unknown definition type '${(definition as any).type}'`);
         }
     }
 
     /**
-     * @private
      * Validates a definition based on its type, throwing an exception
      * if there is a problem.
-     *
-     * @param {*} definition
-     * @param {IndexDefinition} [match]
-     *     Existing index definition of the same name, if any
      */
-    validateDefinition(definition, match) {
+    private validateDefinition(definition: ConfigurationItem, match?: IndexDefinition) {
         let effectiveType = definition.type;
-        if (effectiveType === 'override' && match) {
+        if (effectiveType === ConfigurationType.Override && match) {
             // Use validators based on the type of definition being overriden
 
             if (match instanceof IndexDefinition) {
-                effectiveType = 'index';
+                effectiveType = ConfigurationType.Index;
             }
         }
 
-        const validatorSet = validatorSets[effectiveType];
-        if (validatorSet) {
-            forOwn(validatorSet, (validator, key) => {
-                try {
-                    if (key !== 'post_validate') {
-                        validator.call(definition, definition[key]);
-                    }
-                } catch (e) {
-                    throw new Error(
-                        `${e} in ${definition.name || 'unk'}.${key}`);
-                }
-            });
+        switch (effectiveType) {
+            case ConfigurationType.Index:
+                validateDefinition(IndexValidators, definition as IndexConfigurationBase);
+                break;
 
-            // Don't perform post_validate step on overrides, as overrides
-            // don't have the full set of properties.
-            if (validatorSet.post_validate && definition.type !== 'override') {
-                try {
-                    validatorSet.post_validate.call(definition);
-                } catch (e) {
-                    throw new Error(
-                        `${e} in ${definition.name || 'unk'}`);
-                }
-            }
+            case ConfigurationType.NodeMap:
+                validateDefinition(NodeMapValidators, definition as NodeMapConfiguration);
+                break;
         }
     }
 }

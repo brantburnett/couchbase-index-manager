@@ -8,6 +8,8 @@
     "outDir": "./dist",
     "sourceMap": true,
     "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictBindCallApply": true,
     "importHelpers": true
   },
   "include": [

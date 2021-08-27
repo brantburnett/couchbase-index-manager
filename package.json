@@ -43,6 +43,7 @@
     "@types/chai-things": "^0.0.35",
     "@types/debug": "^4.1.7",
     "@types/jest": "^27.0.1",
+    "@types/js-yaml": "^4.0.3",
     "@types/lodash": "^4.14.172",
     "@types/node": "^16.7.2",
     "@types/sinon": "^10.0.2",
@@ -66,7 +67,7 @@
     "commander": "^8.1.0",
     "couchbase": "^3.2.0",
     "inquirer": "^5.1.0",
-    "js-yaml": "^3.13.1",
+    "js-yaml": "^4.1.0",
     "lodash": "^4.17.15",
     "source-map-support": "^0.5.19",
     "tslib": "^1.14.1"

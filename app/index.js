@@ -1,6 +1,6 @@
 import {Sync} from './sync';
 import {Plan} from './plan/plan';
-import {IndexDefinition} from './index-definition';
+import {IndexDefinition} from './definition';
 import {IndexMutation} from './plan/index-mutation';
 import {CreateIndexMutation} from './plan/create-index-mutation';
 import {DropIndexMutation} from './plan/drop-index-mutation';
