@@ -1,14 +1,13 @@
 import chalk from 'chalk';
 import fs from 'fs';
-import { forOwn, isObjectLike } from 'lodash';
+import yaml from 'js-yaml';
+import { isObjectLike } from 'lodash';
 import path from 'path';
 import util from 'util';
-import yaml from 'js-yaml';
+import { ConfigurationItem, ConfigurationType, IndexConfigurationBase, IndexValidators, isIndex, isNodeMap, isOverride, NodeMapConfiguration, NodeMapValidators, ValidatorSet } from '../configuration';
+import { Logger } from '../options';
 import { IndexDefinition } from './index-definition';
 import { NodeMap } from './node-map';
-import { ConfigurationItem, ConfigurationType, IndexConfiguration, IndexConfigurationBase, IndexValidators, isIndex, isNodeMap, isOverride, NodeMapConfiguration, NodeMapValidators, ValidatorSet } from '../configuration';
-import { Logger } from '../options';
-import { Validator } from '../validator';
 
 const lstat = util.promisify(fs.lstat);
 const readdir = util.promisify(fs.readdir);
