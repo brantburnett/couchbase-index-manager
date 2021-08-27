@@ -1,7 +1,7 @@
 import {compact, flatten, extend, isArrayLike} from 'lodash';
 import chalk from 'chalk';
 import {prompt} from 'inquirer';
-import {Plan} from './plan';
+import {Plan} from './plan/plan';
 import {FeatureVersions} from './feature-versions';
 import {DefinitionLoader} from './definition-loader';
 

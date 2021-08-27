@@ -1,10 +1,10 @@
 import {Sync} from './sync';
-import {Plan} from './plan';
+import {Plan} from './plan/plan';
 import {IndexDefinition} from './index-definition';
-import {IndexMutation} from './index-mutation';
-import {CreateIndexMutation} from './create-index-mutation';
-import {DropIndexMutation} from './drop-index-mutation';
-import {UpdateIndexMutation} from './update-index-mutation';
+import {IndexMutation} from './plan/index-mutation';
+import {CreateIndexMutation} from './plan/create-index-mutation';
+import {DropIndexMutation} from './plan/drop-index-mutation';
+import {UpdateIndexMutation} from './plan/update-index-mutation';
 import {IndexManager} from './index-manager';
 
 module.exports = {

@@ -1,24 +1,23 @@
-import {IndexMutation} from './index-mutation';
 import chalk from 'chalk';
+import { IndexManager } from '../index-manager';
+import { IndexMutation } from './index-mutation';
+import { Logger } from '../options';
 
 /**
  * Represents an index mutation which drops an existing index
  */
 export class DropIndexMutation extends IndexMutation {
-    /** @inheritdoc */
-    print(logger) {
+    print(logger: Logger): void {
         logger.info(chalk.redBright(`Delete: ${this.name}`));
     }
 
-    /** @inheritdoc */
-    async execute(indexManager, logger) {
+    async execute(indexManager: IndexManager, logger: Logger): Promise<void> {
         logger.info(chalk.redBright(`Deleting ${this.name}...`));
 
         await indexManager.dropIndex(this.name);
     }
 
-    /** @inheritdoc */
-    isSafe() {
+    isSafe(): boolean {
         return false;
     }
 }

@@ -4,6 +4,8 @@ import {isString} from 'lodash';
  * @abstract
  */
 export class IndexDefinitionBase {
+    name;
+    
     /**
      * @param {!{name: !string}} hashMap
      */

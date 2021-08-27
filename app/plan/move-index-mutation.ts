@@ -1,14 +1,10 @@
-import {IndexMutation} from './index-mutation';
 import chalk from 'chalk';
+import { IndexDefinition } from '../index-definition';
+import { IndexManager } from '../index-manager';
+import { IndexMutation } from './index-mutation';
+import { Logger } from '../options';
 
 /**
- * @typedef CouchbaseIndex
- * @property {string} name
- * @property {array.string} index_key
- * @property {?string} condition
- */
-
- /**
  * Represents an index mutation which updates an existing index
  */
 export class MoveIndexMutation extends IndexMutation {
@@ -18,14 +14,11 @@ export class MoveIndexMutation extends IndexMutation {
      * @param {boolean} unsupported
      *     If true, don't actually perform this mutation
      */
-    constructor(definition, name, unsupported) {
+    constructor(definition: IndexDefinition, name: string, private unsupported: boolean) {
         super(definition, name);
-
-        this.unsupported = unsupported;
     }
 
-    /** @inheritDoc */
-    print(logger) {
+    print(logger: Logger): void {
         const color = this.unsupported ?
             chalk.yellowBright :
             chalk.cyanBright;
@@ -43,15 +36,9 @@ export class MoveIndexMutation extends IndexMutation {
         }
     }
 
-    /** @inheritDoc */
-    async execute(manager, logger) {
+    async execute(manager: IndexManager): Promise<void> {
         if (!this.unsupported) {
             await manager.moveIndex(this.name, this.definition.nodes);
         }
-    }
-
-    /** @inheritDoc */
-    isSafe() {
-        return true;
     }
 }

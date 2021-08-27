@@ -1,20 +1,30 @@
-import {extend, padStart, flatten} from 'lodash';
 import chalk from 'chalk';
+import { padStart, flatten } from 'lodash';
+import { IndexManager } from '../index-manager';
+import { IndexMutation } from './index-mutation';
+import { Logger } from '../options';
+
+export interface PlanOptions {
+    /**
+     * logger for output
+     */
+    logger: Logger;
+
+    /**
+     * Milliseconds to wait for indexes to build
+     */
+    buildTimeout?: number;
+
+    /**
+     * Milliseconds to wait before building indexes
+     */
+    buildDelay: number;
+}
 
 /**
- * @typedef PlanOptions
- * @property {?logger} logger logger for output
- * @property {?number} buildTimeout Milliseconds to wait for indexes to build
- * @property {?number} buildDelay Milliseconds to wait before building indexes
+ * Adds mutations to a collection already grouped by phase
  */
-
- /**
-  * Adds mutations to a collection already grouped by phase
-  * @param  {array.Mutation} mutations
-  * @param  {array.array.Mutation} currentMutations
-  * @return {array.array.Mutation}
-  */
-function addMutationsByPhase(mutations, currentMutations) {
+function addMutationsByPhase(mutations: IndexMutation[], currentMutations: IndexMutation[][]): IndexMutation[][] {
     mutations.reduce((accumulator, mutation) => {
         const phase = mutation.phase - 1;
 
@@ -30,43 +40,38 @@ function addMutationsByPhase(mutations, currentMutations) {
     return currentMutations;
 }
 
-const defaultOptions = {
+const defaultOptions: PlanOptions = {
     logger: console,
     buildDelay: 3000,
 };
 
 /**
  * Represents a planned set of mutations for synchronization
- *
- * @private @property {IndexManager} manager
- * @private @property {array.array.Mutation} mutations
- * @private @property {PlanOptions} options
  */
 export class Plan {
-    /**
-     * @param {IndexManager} manager
-     * @param {array.IndexMutation} [mutations]
-     * @param {PlanOptions} [options]
-     */
-    constructor(manager, mutations, options) {
-        this.manager = manager;
-        this.options = extend(defaultOptions, options);
+    private options: PlanOptions;
+    private mutations: IndexMutation[][];
+
+    constructor(private manager: IndexManager, mutations: IndexMutation[], options?: Partial<PlanOptions>) {
+        this.options = {
+            ...defaultOptions,
+            ...options
+        };
 
         this.mutations = addMutationsByPhase(mutations, []);
     }
 
     /**
      * Returns true if the plan is empty
-     * @return {boolean}
      */
-    isEmpty() {
+    isEmpty(): boolean {
         return this.mutations.length === 0;
     }
 
     /**
      * Prints the plan
      */
-    print() {
+    print(): void {
         if (this.isEmpty()) {
             this.options.logger.info(
                 chalk.yellowBright('No mutations to be performed'));
@@ -88,16 +93,16 @@ export class Plan {
     /**
      * Executes the plan
      */
-    async execute() {
+    async execute(): Promise<void> {
         let errorCount = 0;
         let skipCount = 0;
 
-        for (let phase of this.mutations) {
+        for (const phase of this.mutations) {
             if (phase.length <= 0) {
                 continue;
             }
 
-            let phaseNum = phase[0].phase;
+            const phaseNum = phase[0].phase;
 
             if (errorCount > 0) {
                 // Skip this phase if there are errors
@@ -145,36 +150,31 @@ export class Plan {
 
             this.options.logger.info();
         } else if (skipCount > 0) {
-            let msg =
+            const msg =
                 `Plan failed with ${errorCount} errors, ${skipCount} skipped`;
             throw new Error(msg);
         } else {
-            let msg = `Plan completed with ${errorCount} errors`;
+            const msg = `Plan completed with ${errorCount} errors`;
             throw new Error(msg);
         }
     }
 
     /**
      * Adds mutations to the plan
-     *
-     * @param {IndexMutation} ...mutations
      */
-    addMutation(...mutations) {
+    addMutation(...mutations: IndexMutation[]): void {
         addMutationsByPhase(mutations, this.mutations);
     }
 
     /**
-     * @private
      * When running in Kubernetes and attaching to logs, there is a five
      * minute timeout if there is no console output.  This tick handler
      * ensures that output continues during that time.
-     *
-     * @param {number} milliseconds Milliseconds since the build wait started
      */
-    indexBuildTickHandler(milliseconds) {
-        let secs = milliseconds / 1000;
-        let secsPart = padStart(Math.floor(secs % 60).toString(10), 2, '0');
-        let minsPart = Math.floor(secs / 60);
+    private indexBuildTickHandler(milliseconds: number): void {
+        const secs = milliseconds / 1000;
+        const secsPart = padStart(Math.floor(secs % 60).toString(10), 2, '0');
+        const minsPart = Math.floor(secs / 60);
 
         this.options.logger.log(chalk.greenBright(
             `Building ${minsPart}m${secsPart}s...`

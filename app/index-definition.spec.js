@@ -4,10 +4,10 @@ import chaiThings from 'chai-things';
 import sinonChai from 'sinon-chai';
 import {stub} from 'sinon';
 import {IndexDefinition} from './index-definition';
-import {UpdateIndexMutation} from './update-index-mutation';
-import {CreateIndexMutation} from './create-index-mutation';
-import {MoveIndexMutation} from './move-index-mutation';
-import {ResizeIndexMutation} from './resize-index-mutation';
+import {UpdateIndexMutation} from './plan/update-index-mutation';
+import {CreateIndexMutation} from './plan/create-index-mutation';
+import {MoveIndexMutation} from './plan/move-index-mutation';
+import {ResizeIndexMutation} from './plan/resize-index-mutation';
 
 use(chaiArrays);
 use(chaiThings);
