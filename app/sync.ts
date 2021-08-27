@@ -1,21 +1,21 @@
-import {compact, flatten, extend, isArrayLike} from 'lodash';
 import chalk from 'chalk';
-import {prompt} from 'inquirer';
-import {Plan} from './plan/plan';
-import {FeatureVersions} from './feature-versions';
-import {DefinitionLoader} from './definition';
+import { prompt } from 'inquirer';
+import { compact, extend, flatten, isArrayLike } from 'lodash';
+import { PartitionStrategy } from './configuration';
+import { DefinitionLoader } from './definition';
+import { FeatureVersions } from './feature-versions';
+import { IndexManager } from './index-manager';
+import { SyncOptions } from './options';
+import { Plan } from './plan/plan';
 
 /**
  * Executes a synchronization, loading definitions from disk
  */
 export class Sync {
-    /**
-     * @param {IndexManager} manager
-     * @param {string | array.string} path
-     *     Path or array of paths to files or directories with index definitions
-     * @param {object} [options]
-     */
-    constructor(manager, path, options) {
+    private paths: string[];
+    private options: SyncOptions;
+
+    constructor(private manager: IndexManager, path: string | ArrayLike<string>, options?: SyncOptions) {
         this.manager = manager;
         this.paths = isArrayLike(path) ? Array.from(path) : [path];
         this.options = extend({logger: console}, options);
@@ -29,9 +29,9 @@ export class Sync {
     /**
      * Executes the synchronization
      */
-    async execute() {
-        let plan = await this.createPlan();
-        let options = this.options;
+    async execute(): Promise<void> {
+        const plan = await this.createPlan();
+        const options = this.options;
 
         if (options.interactive) {
             plan.print();
@@ -52,10 +52,8 @@ export class Sync {
 
     /**
      * Creates the plan
-     *
-     * @return {Plan}
      */
-    async createPlan() {
+    async createPlan(): Promise<Plan> {
         const definitionLoader = new DefinitionLoader(this.options.logger);
         const {definitions, nodeMap} =
             await definitionLoader.loadDefinitions(this.paths);
@@ -85,9 +83,9 @@ export class Sync {
         }
 
         // Normalize the definitions before testing for mutations
-        for (let def of definitions) {
+        for (const def of definitions) {
             if (def.partition) {
-                let strategy = def.partition.strategy || 'HASH';
+                const strategy = def.partition.strategy || PartitionStrategy.Hash;
 
                 if (!FeatureVersions.partitionBy(
                     mutationContext.clusterVersion, strategy)) {
@@ -111,13 +109,10 @@ export class Sync {
     }
 
     /**
-     * @private
      * Presents a confirmation prompt before executing the plan
-     *
-     * @return {boolean} True if user selected yes
     */
-    async confirm() {
-        let answers = await prompt({
+    private async confirm(): Promise<boolean> {
+        const answers = await prompt({
             name: 'confirm',
             type: 'confirm',
             message: 'Execute index sync plan?',

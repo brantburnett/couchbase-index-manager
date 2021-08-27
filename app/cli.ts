@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import { ConnectionInfo, ConnectionManager } from './connection-manager';
 import { Sync } from './sync';
 import { Validator } from './validator';
-import { Options } from './options';
+import { SyncOptions } from './options';
 
 // We use require since this file is above our TS base path
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -106,7 +106,7 @@ export function run(): void {
                 bucketName,
             };
 
-            const options: Options = {
+            const options: SyncOptions = {
                 interactive: true,
                 confirmationPrompt: !cmd.force,
                 dryRun: cmd.dryRun,

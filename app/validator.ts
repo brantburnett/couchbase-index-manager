@@ -1,33 +1,26 @@
-import {extend, isArrayLike} from 'lodash';
 import chalk from 'chalk';
-import {FeatureVersions} from './feature-versions';
-import {DefinitionLoader} from './definition';
-
-/**
- * @typedef ValidateOptions
- * @property {?object} logger Logger for printing information
- */
+import { extend, isArrayLike } from 'lodash';
+import { DefinitionLoader, IndexDefinition, NodeMap } from './definition';
+import { FeatureVersions } from './feature-versions';
+import { IndexManager } from './index-manager';
+import { ValidateOptions } from './options';
 
 /**
  * Executes a synchronization, loading definitions from disk
  */
 export class Validator {
-    /**
-     * @param {string | array.string} path
-     *     Path or array of paths to files or directories with index definitions
-     * @param {ValidateOptions} [options]
-     */
-    constructor(path, options) {
+    private paths: string[];
+    private options: ValidateOptions;
+
+    constructor(path: string | ArrayLike<string>, options?: ValidateOptions) {
         this.paths = isArrayLike(path) ? Array.from(path) : [path];
         this.options = extend({logger: console}, options);
     }
 
     /**
      * Executes the synchronization
-     *
-     * @param  {IndexManager} [manager]
      */
-    async execute(manager) {
+    async execute(manager?: IndexManager): Promise<void> {
         const definitionLoader = new DefinitionLoader(this.options.logger);
         const {definitions, nodeMap} =
             await definitionLoader.loadDefinitions(this.paths);
@@ -41,14 +34,9 @@ export class Validator {
     }
 
     /**
-     * @private
      * Uses EXPLAIN to validate syntax of the CREATE INDEX statement.
-     *
-     * @param {IndexManager} manager
-     * @param {array.IndexDefinition} definitions
-     * @param {NodeMap} nodeMap
      */
-    async validateSyntax(manager, definitions, nodeMap) {
+    private async validateSyntax(manager: IndexManager, definitions: IndexDefinition[], nodeMap: NodeMap) {
         const clusterVersion = await manager.getClusterVersion();
 
         if (!FeatureVersions.autoReplicas(clusterVersion)) {
@@ -60,8 +48,8 @@ export class Validator {
 
         nodeMap.apply(definitions);
 
-        for (let definition of definitions) {
-            let statement = definition.getCreateStatement(
+        for (const definition of definitions) {
+            const statement = definition.getCreateStatement(
                 manager.bucketName, '__cbim_validate');
 
             try {
@@ -72,7 +60,7 @@ export class Validator {
                 await manager.getQueryPlan(statement);
             } catch (e) {
                 throw new Error(
-                    `Invalid index definition for ${this.name}: ${e.message}`);
+                    `Invalid index definition for ${definition.name}: ${e.message}`);
             }
         }
     }
