@@ -1,6 +1,6 @@
 import { Command, program } from 'commander';
 import chalk from 'chalk';
-import { ConnectionManager } from './connection-manager';
+import { ConnectionInfo, ConnectionManager } from './connection-manager';
 import { Sync } from './sync';
 import { Validator } from './validator';
 import { Options } from './options';
@@ -62,7 +62,7 @@ export function run(): void {
 
             const bucketName = cmd.validateSyntax as string;
             if (bucketName) {
-                const connectionInfo = {
+                const connectionInfo: ConnectionInfo = {
                     ...parseBaseOptions(validateCommand.parent),
                     bucketName: bucketName,
                 };
@@ -101,7 +101,7 @@ export function run(): void {
             'Bucket password for secure buckets on 4.x clusters'
         )
         .action(async (bucketName: string, path: string, cmd: { buildTimeout: string, force: boolean, dryRun: boolean, safe: boolean }) => {
-            const connectionInfo = {
+            const connectionInfo: ConnectionInfo = {
                 ...parseBaseOptions(syncCommand.parent),
                 bucketName,
             };
