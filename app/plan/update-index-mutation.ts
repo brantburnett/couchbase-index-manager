@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import { isEqual } from 'lodash';
 import { CreateIndexMutation } from './create-index-mutation';
 import { DropIndexMutation } from './drop-index-mutation';
-import { IndexDefinition } from '../index-definition';
+import { IndexDefinition } from '../definition';
 import { CouchbaseIndex, IndexManager, WithClause } from '../index-manager';
 import { IndexMutation } from './index-mutation';
 import { Logger } from '../options';

@@ -1,7 +1,7 @@
 import {extend, isArrayLike} from 'lodash';
 import chalk from 'chalk';
 import {FeatureVersions} from './feature-versions';
-import {DefinitionLoader} from './definition-loader';
+import {DefinitionLoader} from './definition';
 
 /**
  * @typedef ValidateOptions

@@ -1,15 +1,20 @@
 import _ from "lodash";
 import { IndexConfigurationBase } from "./types";
 
-export interface IndexValidatorSet {
-    [key: string]: (this: IndexConfigurationBase, val: any) => void;
-    post_validate: (this: IndexConfigurationBase) => void;
+export type ValidatorSetBase<T> = {
+    [key in keyof T]?: (this: T, val: any) => void;
 }
+
+export interface ValidatorSetPostValidate<T> {
+    post_validate?: (this: T) => void;
+}
+
+export type ValidatorSet<T> = ValidatorSetBase<T> & ValidatorSetPostValidate<T>;
 
 /**
  * Validators for the incoming index properties.
  */
-export const IndexValidators: IndexValidatorSet = {
+export const IndexValidators: ValidatorSet<IndexConfigurationBase> = {
     is_primary: function(val) {
         if (val !== undefined && !_.isBoolean(val)) {
             throw new Error('is_primary must be a boolean');

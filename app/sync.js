@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import {prompt} from 'inquirer';
 import {Plan} from './plan/plan';
 import {FeatureVersions} from './feature-versions';
-import {DefinitionLoader} from './definition-loader';
+import {DefinitionLoader} from './definition';
 
 /**
  * Executes a synchronization, loading definitions from disk

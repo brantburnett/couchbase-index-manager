@@ -1,24 +1,25 @@
+import { IndexDefinition } from "./index-definition";
+
+export interface StringMap {
+    [key: string]: string;
+}
+
 /**
  * Stores a map of node aliases to their fully qualified name
  */
 export class NodeMap {
-    /**
-     * @param {Object<string, string>} [hash]
-     */
-    constructor(hash) {
-        this._values = {};
+    private _values: StringMap = {};
 
-        if (hash) {
-            this.merge(hash);
+    constructor(configuration?: StringMap) {
+        if (configuration) {
+            this.merge(configuration);
         }
     }
 
     /**
      * Adds or overwrites mapped nodes
-     *
-     * @param {!Object<string, string>} hash
      */
-    merge(hash) {
+    merge(hash: StringMap): void {
         this._values = {
             ...this._values,
             ...hash
@@ -27,16 +28,14 @@ export class NodeMap {
 
     /**
      * Applies node mappings to an array of index definitions
-     *
-     * @param {Iterable.<IndexDefinition>} definition
      */
-    apply(definition) {
-        definition.forEach((def) => {
+    apply(definition: Iterable<IndexDefinition>): void {
+        for (const def of definition) {
             if (def.nodes) {
                 def.nodes = def.nodes.map((node) => {
                     return this._values[node] || node;
                 });
             }
-        });
+        }
     }
 }

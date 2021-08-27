@@ -1,14 +1,11 @@
 import { forOwn, isObjectLike, isString } from "lodash";
+import { ValidatorSet } from "./index-validation";
 import { NodeMapConfiguration } from "./types";
-
-export interface NodeMapValidatorSet {
-    [key: string]: (this: NodeMapConfiguration, val: any) => void;
-}
 
 /**
  * Validators for the incoming node map properties.
  */
-export const NodeMapValidators: NodeMapValidatorSet = {
+export const NodeMapValidators: ValidatorSet<NodeMapConfiguration> = {
     map: function(map) {
         if (!isObjectLike(map)) {
             throw new Error('Invalid node map');

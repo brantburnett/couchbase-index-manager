@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { IndexDefinition } from '../index-definition';
+import { IndexDefinition } from '../definition';
 import { IndexManager } from '../index-manager';
 import { IndexMutation } from './index-mutation';
 import { Logger } from '../options';
