@@ -1,8 +1,9 @@
- /**
-  * @typedef Version
-  * @property {number} major
-  * @property {number} minor
-  */
+import { PartitionStrategy } from "./configuration";
+
+export interface Version {
+    major: number;
+    minor: number;
+}
 
 /**
  * Tests for compatibility with various features,
@@ -11,11 +12,8 @@
 export class FeatureVersions {
     /**
      * Tests for ALTER INDEX compatibility
-     *
-     * @param  {Version} version
-     * @return {boolean}
      */
-    static alterIndex(version) {
+    static alterIndex(version: Version): boolean {
         return version &&
             (version.major > 5 ||
             (version.major == 5 && version.minor >= 5));
@@ -23,11 +21,8 @@ export class FeatureVersions {
 
     /**
      * Tests for ALTER INDEX replica_count compatibility
-     *
-     * @param  {Version} version
-     * @return {boolean}
      */
-    static alterIndexReplicaCount(version) {
+    static alterIndexReplicaCount(version: Version): boolean {
         return version &&
             (version.major > 6 ||
             (version.major == 6 && version.minor >= 5));
@@ -35,13 +30,9 @@ export class FeatureVersions {
 
     /**
      * Tests for PARTITION BY compatibility
-     *
-     * @param  {Version} version
-     * @param  {string} strategy Partition strategy, i.e. 'HASH'
-     * @return {boolean}
      */
-    static partitionBy(version, strategy) {
-        if (strategy.toUpperCase() !== 'HASH') {
+    static partitionBy(version: Version, strategy: string): boolean {
+        if (strategy.toUpperCase() !== PartitionStrategy.Hash) {
             return false;
         }
 
@@ -52,11 +43,8 @@ export class FeatureVersions {
 
     /**
      * Tests for automatic replica compatibility
-     *
-     * @param  {Version} version
-     * @return {boolean}
      */
-    static autoReplicas(version) {
+    static autoReplicas(version: Version): boolean {
         return version && version.major >= 5;
     }
 }

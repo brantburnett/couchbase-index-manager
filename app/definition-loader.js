@@ -1,11 +1,12 @@
 import chalk from 'chalk';
 import fs from 'fs';
-import {forOwn, isObjectLike} from 'lodash';
+import { forOwn, isObjectLike } from 'lodash';
 import path from 'path';
 import util from 'util';
 import yaml from 'js-yaml';
-import {IndexDefinition, IndexValidators} from './index-definition';
-import {NodeMap, NodeMapValidators} from './node-map';
+import { IndexDefinition } from './index-definition';
+import { NodeMap } from './node-map';
+import { ConfigurationType, IndexValidators, NodeMapValidators } from './configuration';
 
 const lstat = util.promisify(fs.lstat);
 const readdir = util.promisify(fs.readdir);
@@ -23,8 +24,8 @@ const INDEX_EXTENSIONS = ['.json', '.yaml', '.yml'];
  * as a whole, to ensure property values compatible with each other.
  */
 const validatorSets = {
-    'nodeMap': NodeMapValidators,
-    'index': IndexValidators,
+    [ConfigurationType.NodeMap]: NodeMapValidators,
+    [ConfigurationType.Index]: IndexValidators,
 };
 
 /**
@@ -154,18 +155,18 @@ export class DefinitionLoader {
         let match = definitions.find((p) => p.name === definition.name);
 
         if (definition.type === undefined) {
-            definition.type = 'index';
+            definition.type = ConfigurationType.Index;
         }
 
         this.validateDefinition(definition, match);
 
-        if (definition.type === 'nodeMap') {
+        if (definition.type === ConfigurationType.NodeMap) {
             if (definition.map && isObjectLike(definition.map)) {
                 nodeMap.merge(definition.map);
             } else {
                 throw new Error('Invalid nodeMap');
             }
-        } else if (definition.type === 'override') {
+        } else if (definition.type === ConfigurationType.Override) {
             // Override definition
             if (match) {
                 match.applyOverride(definition);
@@ -175,7 +176,7 @@ export class DefinitionLoader {
                     chalk.yellowBright(
                         `No index definition found '${definition.name}'`));
             }
-        } else if (definition.type === 'index') {
+        } else if (definition.type === ConfigurationType.Index) {
             // Regular index definition
 
             if (match) {
