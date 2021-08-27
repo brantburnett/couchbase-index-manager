@@ -1,56 +1,73 @@
-import {isString} from 'lodash';
+import { Bucket, Cluster, DropQueryIndexOptions, QueryIndexManager } from 'couchbase';
+import { isString } from 'lodash';
+import { Version } from './feature-versions';
 
 const WAIT_TICK_INTERVAL = 10000; // in milliseconds
 
-/**
- * @callback tickHandler
- * @param {number} milliseconds Milliseconds since the build wait was started
- */
+export type TickHandler<T> = (this: T, timePassed: number) => void;
 
-/**
- * @callback httpResponse
- * @param {*} err Error or null
- * @param {*} resp HTTP response
- * @param {*} strBuffer Response data as a string
- */
+interface WithClause {
+    action?: string;
+    num_replica?: number;
+    nodes?: string[];
+}
 
-/**
-  * @typedef Version
-  * @property {number} major
-  * @property {number} minor
-  */
+interface SystemIndexesIndex {
+    id: string;
+    name: string;
+    namespace_id: string;
+    keyspace_id: string;
+    is_primary?: boolean;
+    index_key: string[];
+    partition: string;
+    state: string;
+    using: string;
+}
+
+interface IndexStatusIndex {
+    bucket: string;
+    index: string;
+    hosts: string[];
+    numReplica: number;
+    numPartition: number;
+    definition: string;
+}
+
+export interface CouchbaseIndex extends SystemIndexesIndex {
+    num_replica: number;
+    num_partition: number;
+    nodes: string[];
+    retain_deleted_xattr: boolean;
+}
 
 /**
  * Manages Couchbase indexes
- *
- * @property {!boolean} is4XCluster
  */
 export class IndexManager {
+    private manager: QueryIndexManager;
+
     /**
      * @param {Bucket} bucket
      * @param {Cluster} cluster
      */
-    constructor(bucket, cluster) {
+    constructor(private bucket: Bucket, private cluster: Cluster) {
         this.bucket = bucket;
         this.cluster = cluster;
         this.manager = cluster.queryIndexes();
     }
 
-    /** Get the name of the bucket being managed
-     * @return {string}
-    */
-    get bucketName() {
+    /**
+     * Get the name of the bucket being managed
+     */
+    get bucketName(): string {
         return this.bucket.name;
     }
 
     /**
-     * @private
      * Gets all indexes using a query
      * Workaround until https://issues.couchbase.com/projects/JSCBC/issues/JSCBC-772 is resolved
-     *
-     * @return {Promise.array}
      */
-    async getAllIndexes() {
+    private async getAllIndexes(): Promise<SystemIndexesIndex[]> {
         let qs = '';
         qs += 'SELECT idx.* FROM system:indexes AS idx';
         qs += ' WHERE keyspace_id="' + this.bucketName + '"';
@@ -58,7 +75,7 @@ export class IndexManager {
 
         const res = await this.cluster.query(qs);
 
-        const indexes = [];
+        const indexes: SystemIndexesIndex[] = [];
         res.rows.forEach((row) => {
             indexes.push(row);
         });
@@ -67,13 +84,10 @@ export class IndexManager {
     }
 
     /**
-     * @private
      * Gets index statuses for the bucket via the cluster manager
-     *
-     * @return {Promise.array}
      */
-    async getIndexStatuses() {
-        const resp = await this.manager._http.request({
+    private async getIndexStatuses(): Promise<IndexStatusIndex[]> {
+        const resp = await (this.manager as any)._http.request({
             type: 'MGMT',
             method: 'GET',
             path: '/indexStatus',
@@ -91,28 +105,27 @@ export class IndexManager {
             throw new Error(body.reason);
         }
 
-        let indexStatuses = body.indexes.filter((index) => {
-            return index.bucket === this.bucketName;
-        });
+        const indexStatuses = (body.indexes as IndexStatusIndex[])
+            .filter((index) => {
+                return index.bucket === this.bucketName;
+            });
 
         return indexStatuses;
     }
 
-    /**
-     * @return {Promise<array>} List of couchbase indexes in the bucket
-     */
-    async getIndexes() {
-        let indexes = await this.getAllIndexes();
+    async getIndexes(): Promise<CouchbaseIndex[]> {
+        // We'll enrich the return value with missing fields
+        const indexes = await this.getAllIndexes() as CouchbaseIndex[];
 
         // Get additional info from the index status API
-        let statuses = await this.getIndexStatuses();
+        const statuses = await this.getIndexStatuses();
 
         // Apply hosts from index status API to index information
         statuses.forEach((status) => {
             // remove (replica X) from the end of the index name
-            let indexName = /^([^\s]*)/.exec(status.index)[1];
+            const indexName = /^([^\s]*)/.exec(status.index)[1];
 
-            let index = indexes.find((index) => index.name === indexName);
+            const index = indexes.find((index) => index.name === indexName) as CouchbaseIndex;
             if (index) {
                 if (!index.nodes) {
                     index.nodes = [];
@@ -142,20 +155,15 @@ export class IndexManager {
 
     /**
      * Creates an index based on an index definition
-     * @param {string} statement N1QL query statement to create the index
-     * @return {Promise}
      */
-    createIndex(statement) {
-        return this.cluster.query(statement);
+    async createIndex(statement: string): Promise<void> {
+        await this.cluster.query(statement);
     }
 
     /**
      * Moves index replicas been nodes
-     * @param {string} indexName
-     * @param {array.string} nodes
-     * @return {Promise}
      */
-    moveIndex(indexName, nodes) {
+    async moveIndex(indexName: string, nodes: string[]): Promise<void> {
         let statement = 'ALTER INDEX ' +
             `\`${this.bucketName}\`.\`${indexName}\`` +
             ' WITH ';
@@ -164,22 +172,18 @@ export class IndexManager {
             nodes: nodes,
         });
 
-        return this.cluster.query(statement);
+        await this.cluster.query(statement);
     }
 
     /**
      * Moves index replicas been nodes
-     * @param {string} indexName
-     * @param {number} numReplica
-     * @param {?array.string} nodes
-     * @return {Promise}
      */
-    resizeIndex(indexName, numReplica, nodes) {
+    async resizeIndex(indexName: string, numReplica: number, nodes?: string[]): Promise<void> {
         let statement = 'ALTER INDEX ' +
             `\`${this.bucketName}\`.\`${indexName}\`` +
             ' WITH ';
 
-        let withClause = {
+        const withClause: WithClause = {
             action: 'replica_count',
             num_replica: numReplica,
         };
@@ -190,21 +194,20 @@ export class IndexManager {
 
         statement += JSON.stringify(withClause);
 
-        return this.cluster.query(statement);
+        await this.cluster.query(statement);
     }
 
     /**
      * Builds any outstanding deferred indexes on the bucket
-     * @return {Promise} Promise triggered once build is started (not completed)
      */
-    async buildDeferredIndexes() {
+    async buildDeferredIndexes(): Promise<string[]> {
         // Workaround for https://issues.couchbase.com/browse/JSCBC-771, we must build ourselves
 
-        let indices = await this.manager.getAllIndexes(this.bucketName);
+        const indices = await this.manager.getAllIndexes(this.bucketName);
 
-        let deferredList = [];
+        const deferredList = [];
         for (let i = 0; i < indices.length; ++i) {
-            let index = indices[i];
+            const index = indices[i];
 
             if (index.state === 'deferred' || index.state === 'pending') {
                 deferredList.push(index.name);
@@ -235,12 +238,8 @@ export class IndexManager {
 
     /**
      * Monitors building indexes and triggers a Promise when complete
-     * @param {number} [timeoutMilliseconds] Null or 0 for no timeout
-     * @param {tickHandler} [tickHandler] Tick approx every 10 seconds
-     * @param {object} [thisObj] Object to be this for tickHandler
-     * @return {Promise}
      */
-    async waitForIndexBuild(timeoutMilliseconds, tickHandler, thisObj) {
+    async waitForIndexBuild<T = void>(timeoutMilliseconds?: number, tickHandler?: TickHandler<T>, thisObj?: T): Promise<boolean> {
         const startTime = Date.now();
         let lastTick = startTime;
 
@@ -259,7 +258,7 @@ export class IndexManager {
 
         while (!timeoutMilliseconds ||
             (Date.now() - startTime < timeoutMilliseconds)) {
-            let indexes = await this.getIndexes();
+            const indexes = await this.getIndexes();
 
             if (!indexes.find((p) => p.state !== 'online')) {
                 // All indexes are online
@@ -281,22 +280,16 @@ export class IndexManager {
 
     /**
      * Drops an existing index
-     *
-     * @param {string} indexName
-     * @param {*} options
-     * @return {Promise}
      */
-    dropIndex(indexName, options) {
-        return this.manager.dropIndex(this.bucketName, indexName, options);
+    async dropIndex(indexName: string, options?: DropQueryIndexOptions): Promise<void> {
+        await this.manager.dropIndex(this.bucketName, indexName, options);
     }
 
     /**
      * Gets the version of the cluster
-     *
-     * @return {Promise.Version}
      */
-    async getClusterVersion() {
-        const resp = await this.manager._http.request({
+    async getClusterVersion(): Promise<Version> {
+        const resp = await (this.manager as any)._http.request({
             type: 'MGMT',
             method: 'GET',
             path: '/pools/default',
@@ -319,8 +312,12 @@ export class IndexManager {
             throw new Error(errData.reason);
         }
 
-        let poolData = JSON.parse(resp.body.toString());
-        let minCompatibility = poolData.nodes.reduce(
+        const poolData = JSON.parse(resp.body.toString()) as {
+            nodes: {
+                clusterCompatibility: number
+            }[]
+        };
+        const minCompatibility = poolData.nodes.reduce(
             (accum, value) => {
                 if (value.clusterCompatibility < accum) {
                     accum = value.clusterCompatibility;
@@ -329,7 +326,7 @@ export class IndexManager {
                 return accum;
             }, 65535 * 65536);
 
-        let clusterCompatibility = minCompatibility < 65535 * 65536 ?
+        const clusterCompatibility = minCompatibility < 65535 * 65536 ?
             minCompatibility :
             0;
 
@@ -341,20 +338,18 @@ export class IndexManager {
 
     /**
      * Uses EXPLAIN to get a query plan for a statement
-     * @param  {string} statement
-     * @return {*}
      */
-    async getQueryPlan(statement) {
+    async getQueryPlan(statement: string): Promise<any> {
         statement = 'EXPLAIN ' + statement;
 
-        let explain = await this.cluster.query(statement);
+        const explain = await this.cluster.query(statement);
 
-        let plan = explain.rows[0].plan;
+        const plan = explain.rows[0].plan;
 
         if (plan && plan.keys) {
             // Couchbase 5.0 started nesting within expr property
             // so normalize the returned object
-            plan.keys = plan.keys.map((key) =>
+            plan.keys = plan.keys.map((key: string | { expr: string }) =>
                 isString(key) ? {expr: key} : key);
         }
 
