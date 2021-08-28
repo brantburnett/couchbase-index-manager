@@ -22,7 +22,7 @@ interface SystemIndexesIndex {
     is_primary?: boolean;
     index_key: string[];
     condition?: string;
-    partition: string;
+    partition?: string;
     state: string;
     using: string;
 }

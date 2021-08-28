@@ -1,21 +1,44 @@
-import {use, expect} from 'chai';
+import { expect, use } from 'chai';
 import chaiArrays from 'chai-arrays';
 import chaiThings from 'chai-things';
+import { stub } from 'sinon';
 import sinonChai from 'sinon-chai';
-import {stub} from 'sinon';
-import {IndexDefinition} from './index-definition';
-import {UpdateIndexMutation} from '../plan/update-index-mutation';
-import {CreateIndexMutation} from '../plan/create-index-mutation';
-import {MoveIndexMutation} from '../plan/move-index-mutation';
-import {ResizeIndexMutation} from '../plan/resize-index-mutation';
+import { Lifecycle, Partition, PartitionStrategy } from '../configuration';
+import { CouchbaseIndex, IndexManager } from '../index-manager';
+import { CreateIndexMutation } from '../plan/create-index-mutation';
+import { MoveIndexMutation } from '../plan/move-index-mutation';
+import { ResizeIndexMutation } from '../plan/resize-index-mutation';
+import { UpdateIndexMutation } from '../plan/update-index-mutation';
+import { IndexDefinition } from './index-definition';
 
 use(chaiArrays);
 use(chaiThings);
 use(sinonChai);
 
+const defaultFakeIndex: CouchbaseIndex = {
+    id: 'fake',
+    name: 'fake',
+    namespace_id: 'default',
+    keyspace_id: 'default',
+    index_key: ['id'],
+    num_replica: 0,
+    num_partition: 0,
+    nodes: ['127.0.0.1:8091'],
+    retain_deleted_xattr: false,
+    state: 'online',
+    using: 'gsi',
+}
+
+function fakeIndex(index: Partial<CouchbaseIndex>): CouchbaseIndex {
+    return {
+        ...defaultFakeIndex,
+        ...index
+    }
+}
+
 describe('ctor', function() {
     it('applies name', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -25,7 +48,7 @@ describe('ctor', function() {
     });
 
     it('applies index_key string', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -35,7 +58,7 @@ describe('ctor', function() {
     });
 
     it('applies index_key array', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: ['key1', 'key2'],
         });
@@ -91,7 +114,7 @@ describe('ctor', function() {
     });
 
     it('node list sets num_replica', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             nodes: ['a', 'b'],
@@ -102,7 +125,7 @@ describe('ctor', function() {
     });
 
     it('no node list keeps num_replica', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             num_replica: 2,
@@ -113,7 +136,7 @@ describe('ctor', function() {
     });
 
     it('no num_replica is 0', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -123,7 +146,7 @@ describe('ctor', function() {
     });
 
     it('no manual_replica is false', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -133,7 +156,7 @@ describe('ctor', function() {
     });
 
     it('manual_replica sets value', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             manual_replica: true,
@@ -144,11 +167,11 @@ describe('ctor', function() {
     });
 
     it('lifecycle copies values', function() {
-        let lifecycle = {
+        const lifecycle = {
             drop: true,
         };
 
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             lifecycle: lifecycle,
@@ -161,12 +184,12 @@ describe('ctor', function() {
     });
 
     it('partition copies values', function() {
-        let partition = {
+        const partition: Partition = {
             exprs: ['test'],
-            strategy: 'hash',
+            strategy: PartitionStrategy.Hash,
         };
 
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             partition: partition,
@@ -179,7 +202,7 @@ describe('ctor', function() {
     });
 
     it('partition null is undefined', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             partition: null,
@@ -190,7 +213,7 @@ describe('ctor', function() {
     });
 
     it('no retain_deleted_xattr is false', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -200,7 +223,7 @@ describe('ctor', function() {
     });
 
     it('retain_deleted_xattr sets value', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             retain_deleted_xattr: true,
@@ -213,7 +236,7 @@ describe('ctor', function() {
 
 describe('applyOverride', function() {
     it('applies index_key string', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -227,7 +250,7 @@ describe('applyOverride', function() {
     });
 
     it('applies index_key array', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: ['key1', 'key2'],
         });
@@ -241,7 +264,7 @@ describe('applyOverride', function() {
     });
 
     it('primary key with index_key throws error', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             is_primary: true,
         });
@@ -254,7 +277,7 @@ describe('applyOverride', function() {
     });
 
     it('primary key with condition throws error', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             is_primary: true,
         });
@@ -267,7 +290,7 @@ describe('applyOverride', function() {
     });
 
     it('secondary index without index_key throws error', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -280,7 +303,7 @@ describe('applyOverride', function() {
     });
 
     it('secondary index with empty index_key throws error', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -293,7 +316,7 @@ describe('applyOverride', function() {
     });
 
     it('manual replica with partition throws error', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             manual_replica: true,
@@ -308,7 +331,7 @@ describe('applyOverride', function() {
     });
 
     it('node list sets num_replica', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -322,7 +345,7 @@ describe('applyOverride', function() {
     });
 
     it('no node list keeps num_replica', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -336,7 +359,7 @@ describe('applyOverride', function() {
     });
 
     it('nodes and num_replica mismatch throws', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -349,7 +372,7 @@ describe('applyOverride', function() {
     });
 
     it('partitioned nodes and num_replica mismatch succeeds', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             partition: {
@@ -369,7 +392,7 @@ describe('applyOverride', function() {
     });
 
     it('nodes and num_replica match succeeds', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -386,7 +409,7 @@ describe('applyOverride', function() {
     });
 
     it('no manual_replica is unchanged', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             manual_replica: true,
@@ -399,7 +422,7 @@ describe('applyOverride', function() {
     });
 
     it('manual_replica sets value', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
@@ -413,15 +436,15 @@ describe('applyOverride', function() {
     });
 
     it('lifecycle copies values', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             lifecycle: {
                 initial: 1,
-            },
+            } as Lifecycle,
         });
 
-        let lifecycle = {
+        const lifecycle = {
             drop: true,
         };
 
@@ -438,12 +461,12 @@ describe('applyOverride', function() {
     });
 
     it('partition undefined leaves unmodified', function() {
-        let partition = {
+        const partition: Partition = {
             exprs: ['test'],
-            strategy: 'hash',
+            strategy: PartitionStrategy.Hash,
         };
 
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             partition: partition,
@@ -456,12 +479,12 @@ describe('applyOverride', function() {
     });
 
     it('partition null clears', function() {
-        let partition = {
+        const partition: Partition = {
             exprs: ['test'],
-            strategy: 'hash',
+            strategy: PartitionStrategy.Hash,
         };
 
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             partition: partition,
@@ -476,12 +499,12 @@ describe('applyOverride', function() {
     });
 
     it('partition updates strategy', function() {
-        let partition = {
+        const partition: Partition = {
             exprs: ['test'],
-            strategy: 'hash',
+            strategy: PartitionStrategy.Hash,
         };
 
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             partition: partition,
@@ -490,7 +513,7 @@ describe('applyOverride', function() {
         def.applyOverride({
             partition: {
                 strategy: 'other',
-            },
+            } as unknown as Partition,
         });
 
         expect(def.partition)
@@ -500,12 +523,12 @@ describe('applyOverride', function() {
     });
 
     it('partition replaces exprs', function() {
-        let partition = {
+        const partition: Partition = {
             exprs: ['test', 'test2'],
-            strategy: 'hash',
+            strategy: PartitionStrategy.Hash,
         };
 
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             partition: partition,
@@ -518,7 +541,7 @@ describe('applyOverride', function() {
         });
 
         expect(def.partition)
-            .to.have.property('strategy', 'hash');
+            .to.have.property('strategy', PartitionStrategy.Hash);
         expect(def.partition.exprs)
             .is.equalTo(['test3']);
     });
@@ -526,7 +549,7 @@ describe('applyOverride', function() {
 
 describe('getMutation partition change', function() {
     it('ignores matching partition', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             partition: {
@@ -534,14 +557,14 @@ describe('getMutation partition change', function() {
             },
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
-                {
+                fakeIndex({
                     name: 'test',
                     index_key: ['`key`'],
                     partition: 'HASH(`test`)',
                     nodes: ['a:8091'],
-                },
+                }),
             ],
         })];
 
@@ -550,7 +573,7 @@ describe('getMutation partition change', function() {
     });
 
     it('ignores matching num_partition', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             partition: {
@@ -559,7 +582,7 @@ describe('getMutation partition change', function() {
             },
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -568,7 +591,7 @@ describe('getMutation partition change', function() {
                     num_partition: 3,
                     nodes: ['a:8091'],
                 },
-            ],
+            ].map(fakeIndex),
         })];
 
         expect(mutations)
@@ -576,7 +599,7 @@ describe('getMutation partition change', function() {
     });
 
     it('ignores missing num_partition', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             partition: {
@@ -584,7 +607,7 @@ describe('getMutation partition change', function() {
             },
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -593,7 +616,7 @@ describe('getMutation partition change', function() {
                     num_partition: 8,
                     nodes: ['a:8091'],
                 },
-            ],
+            ].map(fakeIndex),
         })];
 
         expect(mutations)
@@ -601,7 +624,7 @@ describe('getMutation partition change', function() {
     });
 
     it('updates if partition does not match', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             partition: {
@@ -609,7 +632,7 @@ describe('getMutation partition change', function() {
             },
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -617,7 +640,7 @@ describe('getMutation partition change', function() {
                     partition: 'HASH(`test2`)',
                     nodes: ['a:8091'],
                 },
-            ],
+            ].map(fakeIndex),
         })];
 
         expect(mutations)
@@ -627,7 +650,7 @@ describe('getMutation partition change', function() {
     });
 
     it('updates if num_partition does not match', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             partition: {
@@ -636,7 +659,7 @@ describe('getMutation partition change', function() {
             },
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -645,7 +668,7 @@ describe('getMutation partition change', function() {
                     num_partition: 8,
                     nodes: ['a:8091'],
                 },
-            ],
+            ].map(fakeIndex),
         })];
 
         expect(mutations)
@@ -655,12 +678,12 @@ describe('getMutation partition change', function() {
     });
 
     it('updates if partition removed', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -668,7 +691,7 @@ describe('getMutation partition change', function() {
                     partition: 'HASH(`test2`)',
                     nodes: ['a:8091'],
                 },
-            ],
+            ].map(fakeIndex),
         })];
 
         expect(mutations)
@@ -678,7 +701,7 @@ describe('getMutation partition change', function() {
     });
 
     it('updates if partition added', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             partition: {
@@ -686,14 +709,14 @@ describe('getMutation partition change', function() {
             },
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
                     index_key: ['`key`'],
                     nodes: ['a:8091'],
                 },
-            ],
+            ].map(fakeIndex),
         })];
 
         expect(mutations)
@@ -705,14 +728,14 @@ describe('getMutation partition change', function() {
 
 describe('getMutation manual replica node changes', function() {
     it('performs node move as an update', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             manual_replica: true,
             nodes: ['a', 'b'],
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -724,7 +747,7 @@ describe('getMutation manual replica node changes', function() {
                     index_key: ['`key`'],
                     nodes: ['c:8091'],
                 },
-            ],
+            ].map(fakeIndex),
         })];
 
         expect(mutations)
@@ -739,14 +762,14 @@ describe('getMutation manual replica node changes', function() {
     });
 
     it('ignores node swap', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             manual_replica: true,
             nodes: ['a', 'b'],
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -758,7 +781,7 @@ describe('getMutation manual replica node changes', function() {
                     index_key: ['`key`'],
                     nodes: ['a:8091'],
                 },
-            ],
+            ].map(fakeIndex),
         })];
 
         expect(mutations)
@@ -766,27 +789,27 @@ describe('getMutation manual replica node changes', function() {
     });
 
     it('creates new replicas first', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             manual_replica: true,
             nodes: ['a', 'b', 'c'],
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
                     index_key: ['`key`'],
                     nodes: ['d:8091'],
                 },
-            ],
+            ].map(fakeIndex),
         })];
 
         expect(mutations)
             .to.have.length(3);
 
-        let updates = mutations.filter((m) => m instanceof UpdateIndexMutation);
+        const updates = mutations.filter((m) => m instanceof UpdateIndexMutation);
         expect(updates)
             .to.have.length(1);
         expect(updates[0])
@@ -796,10 +819,10 @@ describe('getMutation manual replica node changes', function() {
             })
             .and.to.satisfy((m) => m.isSafe());
 
-        let creates = mutations.filter((m) => m instanceof CreateIndexMutation);
+        const creates = mutations.filter((m) => m instanceof CreateIndexMutation);
         expect(creates)
             .to.have.length(2);
-        for (let create of creates) {
+        for (const create of creates) {
             expect(create)
                 .to.include({
                     phase: 1,
@@ -810,13 +833,13 @@ describe('getMutation manual replica node changes', function() {
 
 describe('getMutation automatic replica node changes', function() {
     it('performs single move mutation', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             nodes: ['a', 'b'],
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -824,7 +847,7 @@ describe('getMutation automatic replica node changes', function() {
                     nodes: ['a:8091', 'c:8091'],
                     num_replica: 1,
                 },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -843,26 +866,21 @@ describe('getMutation automatic replica node changes', function() {
     });
 
     it('returns unsupported for 5.1 cluster', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             nodes: ['a', 'b'],
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
                     index_key: ['`key`'],
-                    nodes: ['a:8091'],
+                    nodes: ['a:8091', 'c:8091'],
+                    num_replica: 1,
                 },
-                {
-                    name: 'test_replica1',
-                    index_key: ['`key`'],
-                    nodes: ['c:8091'],
-                    num_replica: 0,
-                },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 5,
                 minor: 1,
@@ -881,13 +899,13 @@ describe('getMutation automatic replica node changes', function() {
     });
 
     it('ignores node swap', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             nodes: ['a', 'b'],
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -895,7 +913,7 @@ describe('getMutation automatic replica node changes', function() {
                     nodes: ['b:8091', 'a:8091'],
                     num_replica: 1,
                 },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -907,13 +925,13 @@ describe('getMutation automatic replica node changes', function() {
     });
 
     it('num_replica change gives unsafe update', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             num_replica: 2,
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -921,7 +939,7 @@ describe('getMutation automatic replica node changes', function() {
                     nodes: ['a:8091', 'b:8091'],
                     num_replica: 1,
                 },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -940,13 +958,13 @@ describe('getMutation automatic replica node changes', function() {
     });
 
     it('num_replica addition from zero gives unsafe update', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             num_replica: 1,
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -954,7 +972,7 @@ describe('getMutation automatic replica node changes', function() {
                     nodes: ['a:8091', 'b:8091'],
                     num_replica: 0,
                 },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -973,13 +991,13 @@ describe('getMutation automatic replica node changes', function() {
     });
 
     it('num_replica change gives resize on 6.5', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             num_replica: 2,
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -987,7 +1005,7 @@ describe('getMutation automatic replica node changes', function() {
                     nodes: ['a:8091', 'b:8091'],
                     num_replica: 1,
                 },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 6,
                 minor: 5,
@@ -1006,13 +1024,13 @@ describe('getMutation automatic replica node changes', function() {
     });
 
     it('num_replica addition from zero gives resize on 6.5', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             num_replica: 1,
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -1020,7 +1038,7 @@ describe('getMutation automatic replica node changes', function() {
                     nodes: ['a:8091'],
                     num_replica: 0,
                 },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 6,
                 minor: 5,
@@ -1039,7 +1057,7 @@ describe('getMutation automatic replica node changes', function() {
     });
 
     it('partitioned num_replica change gives unsafe update', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             num_replica: 2,
@@ -1048,18 +1066,16 @@ describe('getMutation automatic replica node changes', function() {
             },
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
                     index_key: ['`key`'],
                     nodes: ['a:8091', 'b:8091'],
                     num_replica: 1,
-                    partition: {
-                        exprs: ['`type`'],
-                    },
+                    partition: 'HASH(`type`)',
                 },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -1078,13 +1094,13 @@ describe('getMutation automatic replica node changes', function() {
     });
 
     it('node length change gives unsafe update', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             nodes: ['a'],
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -1092,7 +1108,7 @@ describe('getMutation automatic replica node changes', function() {
                     nodes: ['a:8091', 'b:8091'],
                     num_replica: 1,
                 },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -1111,13 +1127,13 @@ describe('getMutation automatic replica node changes', function() {
     });
 
     it('node length change gives resize on 6.5', function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: '`key`',
             nodes: ['a'],
         });
 
-        let mutations = [...def.getMutations({
+        const mutations = [...def.getMutations({
             currentIndexes: [
                 {
                     name: 'test',
@@ -1125,7 +1141,7 @@ describe('getMutation automatic replica node changes', function() {
                     nodes: ['a:8091', 'b:8091'],
                     num_replica: 1,
                 },
-            ],
+            ].map(fakeIndex),
             clusterVersion: {
                 major: 6,
                 minor: 5,
@@ -1147,7 +1163,7 @@ describe('getMutation automatic replica node changes', function() {
 describe('normalizeNodeList', function() {
     describe('auto replica', function() {
         it('sorts node lists', function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 nodes: ['b', 'c', 'a'],
@@ -1160,7 +1176,7 @@ describe('normalizeNodeList', function() {
         });
 
         it('adds port numbers', function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 nodes: ['a', 'b', 'c'],
@@ -1173,7 +1189,7 @@ describe('normalizeNodeList', function() {
         });
 
         it('ignores defined port numbers', function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 nodes: ['a:18091', 'b', 'c'],
@@ -1188,7 +1204,7 @@ describe('normalizeNodeList', function() {
 
     describe('manual replica', function() {
         it('sorts node lists', function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 manual_replica: true,
@@ -1202,7 +1218,7 @@ describe('normalizeNodeList', function() {
         });
 
         it('adds port numbers', function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 manual_replica: true,
@@ -1216,7 +1232,7 @@ describe('normalizeNodeList', function() {
         });
 
         it('ignores defined port numbers', function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 manual_replica: true,
@@ -1230,7 +1246,7 @@ describe('normalizeNodeList', function() {
         });
 
         it('sorts to match replicas', function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 manual_replica: true,
@@ -1250,14 +1266,14 @@ describe('normalizeNodeList', function() {
                     name: 'test_replica2',
                     nodes: ['a:8091'],
                 },
-            ]);
+            ].map(fakeIndex));
 
             expect(def.nodes)
                 .to.be.equalTo(['b:8091', 'c:8091', 'a:8091']);
         });
 
         it('missing replicas get remaining nodes', function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 manual_replica: true,
@@ -1269,14 +1285,14 @@ describe('normalizeNodeList', function() {
                     name: 'test',
                     nodes: ['b:8091'],
                 },
-            ]);
+            ].map(fakeIndex));
 
             expect(def.nodes)
                 .to.be.equalTo(['b:8091', 'a:8091', 'c:8091']);
         });
 
         it('missing replica in middle gets remaining node', function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 manual_replica: true,
@@ -1292,7 +1308,7 @@ describe('normalizeNodeList', function() {
                     name: 'test_replica2',
                     nodes: ['a:8091'],
                 },
-            ]);
+            ].map(fakeIndex));
 
             expect(def.nodes)
                 .to.be.equalTo(['b:8091', 'c:8091', 'a:8091']);
@@ -1302,40 +1318,40 @@ describe('normalizeNodeList', function() {
 
 describe('normalize', function() {
     it('does nothing for primary index', async function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             is_primary: true,
         });
 
-        let getQueryPlan = stub().returns(Promise.resolve({}));
+        const getQueryPlan = stub().returns(Promise.resolve({}));
 
-        let manager = {
+        const manager: Partial<IndexManager> = {
             bucketName: 'test',
             getQueryPlan: getQueryPlan,
         };
 
-        await def.normalize(manager);
+        await def.normalize(<IndexManager> manager);
 
         expect(getQueryPlan)
             .to.not.be.called;
     });
 
     it('wraps query errors', async function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
 
-        let getQueryPlan = stub().returns(Promise.reject(
+        const getQueryPlan = stub().returns(Promise.reject(
             new Error('msg test')));
 
-        let manager = {
+        const manager: Partial<IndexManager> = {
             bucketName: 'test',
             getQueryPlan: getQueryPlan,
         };
 
         try {
-            await def.normalize(manager);
+            await def.normalize(<IndexManager> manager);
 
             throw new Error('No exception encountered');
         } catch (e) {
@@ -1346,75 +1362,75 @@ describe('normalize', function() {
     });
 
     it('replaces keys', async function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             condition: 'type = \'beer\'',
         });
 
-        let getQueryPlan = stub().returns(Promise.resolve({
+        const getQueryPlan = stub().returns(Promise.resolve({
             keys: [
                 {expr: '`key`'},
             ],
             where: '`type` = "beer"',
         }));
 
-        let manager = {
+        const manager: Partial<IndexManager> = {
             bucketName: 'test',
             getQueryPlan: getQueryPlan,
         };
 
-        await def.normalize(manager);
+        await def.normalize(<IndexManager> manager);
 
         expect(def.index_key)
             .to.be.equalTo(['`key`']);
     });
 
     it('handles descending keys', async function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             condition: 'type = \'beer\'',
         });
 
-        let getQueryPlan = stub().returns(Promise.resolve({
+        const getQueryPlan = stub().returns(Promise.resolve({
             keys: [
                 {expr: '`key`', desc: true},
             ],
             where: '`type` = "beer"',
         }));
 
-        let manager = {
+        const manager: Partial<IndexManager> = {
             bucketName: 'test',
             getQueryPlan: getQueryPlan,
         };
 
-        await def.normalize(manager);
+        await def.normalize(<IndexManager> manager);
 
         expect(def.index_key)
             .to.be.equalTo(['`key` DESC']);
     });
 
     it('replaces condition', async function() {
-        let def = new IndexDefinition({
+        const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
             condition: 'type = \'beer\'',
         });
 
-        let getQueryPlan = stub().returns(Promise.resolve({
+        const getQueryPlan = stub().returns(Promise.resolve({
             keys: [
                 {expr: '`key`'},
             ],
             where: '`type` = "beer"',
         }));
 
-        let manager = {
+        const manager: Partial<IndexManager> = {
             bucketName: 'test',
             getQueryPlan: getQueryPlan,
         };
 
-        await def.normalize(manager);
+        await def.normalize(<IndexManager> manager);
 
         expect(def.condition)
             .to.equal('`type` = "beer"');
@@ -1422,31 +1438,31 @@ describe('normalize', function() {
 
     it('plan without condition leaves condition as empty string',
         async function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 condition: '',
             });
 
-            let getQueryPlan = stub().returns(Promise.resolve({
+            const getQueryPlan = stub().returns(Promise.resolve({
                 keys: [
                     {expr: '`key`'},
                 ],
             }));
 
-            let manager = {
+            const manager: Partial<IndexManager> = {
                 bucketName: 'test',
                 getQueryPlan: getQueryPlan,
             };
 
-            await def.normalize(manager);
+            await def.normalize(<IndexManager>manager);
 
             expect(def.condition)
                 .to.equal('');
         });
 
         it('replaces partition', async function() {
-            let def = new IndexDefinition({
+            const def = new IndexDefinition({
                 name: 'test',
                 index_key: 'key',
                 partition: {
@@ -1454,7 +1470,7 @@ describe('normalize', function() {
                 },
             });
 
-            let getQueryPlan = stub().returns(Promise.resolve({
+            const getQueryPlan = stub().returns(Promise.resolve({
                 keys: [
                     {expr: '`key`'},
                 ],
@@ -1464,12 +1480,12 @@ describe('normalize', function() {
                 },
             }));
 
-            let manager = {
+            const manager: Partial<IndexManager> = {
                 bucketName: 'test',
                 getQueryPlan: getQueryPlan,
             };
 
-            await def.normalize(manager);
+            await def.normalize(<IndexManager> manager);
 
             expect(def.partition)
                 .to.have.property('strategy', 'HASH');
@@ -1480,7 +1496,7 @@ describe('normalize', function() {
 
         it('plan without partition leaves partition undefined',
             async function() {
-                let def = new IndexDefinition({
+                const def = new IndexDefinition({
                     name: 'test',
                     index_key: 'key',
                     partition: {
@@ -1488,18 +1504,18 @@ describe('normalize', function() {
                     },
                 });
 
-                let getQueryPlan = stub().returns(Promise.resolve({
+                const getQueryPlan = stub().returns(Promise.resolve({
                     keys: [
                         {expr: '`key`'},
                     ],
                 }));
 
-                let manager = {
+                const manager: Partial<IndexManager> = {
                     bucketName: 'test',
                     getQueryPlan: getQueryPlan,
                 };
 
-                await def.normalize(manager);
+                await def.normalize(<IndexManager> manager);
 
                 expect(def.partition)
                     .to.be.undefined;

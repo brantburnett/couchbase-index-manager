@@ -6,5 +6,6 @@
         "dist/**": true,
         "testbin/**": true,
         "node_modules/**": true
-    }
+    },
+    "jest.jestCommandLine": "npm run test --"
 }
