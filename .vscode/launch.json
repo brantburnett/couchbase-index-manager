@@ -9,7 +9,9 @@
             "request": "launch",
             "name": "Sync",
             "program": "${workspaceFolder}/bin/couchbase-index-manager",
-            "runtimeArgs": ["--nolazy"],
+            "runtimeArgs": [
+                "--nolazy"
+            ],
             "args": [
                 "-p",
                 "password",
@@ -20,30 +22,53 @@
             "console": "integratedTerminal",
             "sourceMaps": true,
             "smartStep": true,
-            "outFiles": ["${workspaceRoot}/dist/**/*.js"],
+            "outFiles": [
+                "${workspaceRoot}/dist/**/*.js"
+            ],
             "skipFiles": [
                 "${workspaceRoot}/node_modules/**/*.js",
                 "<node_internals>/**/*.js"
             ]
         },
         {
-          "type": "node",
-          "request": "launch",
-          "name": "Validate",
-          "program": "${workspaceFolder}/bin/couchbase-index-manager",
-          "runtimeArgs": ["--nolazy"],
-          "args": [
-              "validate",
-              "./example/beer-sample"
-          ],
-          "console": "integratedTerminal",
-          "sourceMaps": true,
-          "smartStep": true,
-          "outFiles": ["${workspaceRoot}/dist/**/*.js"],
-          "skipFiles": [
-              "${workspaceRoot}/node_modules/**/*.js",
-              "<node_internals>/**/*.js"
-          ]
-      }
+            "type": "node",
+            "request": "launch",
+            "name": "Validate",
+            "program": "${workspaceFolder}/bin/couchbase-index-manager",
+            "runtimeArgs": [
+                "--nolazy"
+            ],
+            "args": [
+                "validate",
+                "./example/beer-sample"
+            ],
+            "console": "integratedTerminal",
+            "sourceMaps": true,
+            "smartStep": true,
+            "outFiles": [
+                "${workspaceRoot}/dist/**/*.js"
+            ],
+            "skipFiles": [
+                "${workspaceRoot}/node_modules/**/*.js",
+                "<node_internals>/**/*.js"
+            ]
+        },
+        {
+            "type": "node",
+            "name": "vscode-jest-tests",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "cwd": "${workspaceFolder}",
+            "runtimeExecutable": "npm",
+            "args": [
+                "run",
+                "test",
+                "--",
+                "--runInBand",
+                "--watchAll=false"
+            ]
+        }
     ]
 }

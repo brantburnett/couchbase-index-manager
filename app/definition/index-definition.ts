@@ -487,7 +487,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
      * order as the current indexes.  This allows easy matching of existing
      * node assignments, reducing reindex load due to minor node shifts.
      */
-    private normalizeNodeList(currentIndexes: CouchbaseIndex[]): void {
+    normalizeNodeList(currentIndexes: CouchbaseIndex[]): void {
         if (!this.nodes) {
             return;
         }

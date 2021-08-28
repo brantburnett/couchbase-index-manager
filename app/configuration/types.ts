@@ -35,7 +35,7 @@ export interface IndexConfigurationBase {
 }
 
 export interface IndexConfiguration extends Exclude<IndexConfigurationBase, "post_process"> {
-    type: ConfigurationType.Index;
+    type?: ConfigurationType.Index;
 }
 
 export interface OverrideConfiguration extends IndexConfigurationBase {
@@ -50,7 +50,7 @@ export interface NodeMapConfiguration {
 export type ConfigurationItem = IndexConfiguration | OverrideConfiguration | NodeMapConfiguration;
 
 export function isIndex(item: ConfigurationItem): item is IndexConfiguration {
-    return item.type === ConfigurationType.Index;
+    return !item.type || item.type === ConfigurationType.Index;
 }
 
 export function isOverride(item: ConfigurationItem): item is OverrideConfiguration {
