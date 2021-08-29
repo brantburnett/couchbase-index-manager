@@ -116,9 +116,14 @@ services:
             -u Administrator -p password && break
         done;
         while true; do
-          sleep 3;
           ./cbdocloader -n node1.cbindexmgr -u Administrator -p password \
-            -b beer-sample -s 100 -d /opt/couchbase/samples/beer-sample.zip && break
+            -b beer-sample -s 100 -d /opt/couchbase/samples/beer-sample.zip && break;
+          sleep 3;
+        done;
+        while true; do
+          ./cbdocloader -n node1.cbindexmgr -u Administrator -p password \
+            -b travel-sample -s 100 -d /opt/couchbase/samples/travel-sample.zip && break;
+          sleep 3;
         done;
         echo "Initialized" > /initialized;
       fi

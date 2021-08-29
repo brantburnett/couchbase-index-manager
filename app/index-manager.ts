@@ -4,6 +4,9 @@ import { Version } from './feature-versions';
 
 const WAIT_TICK_INTERVAL = 10000; // in milliseconds
 
+export const DEFAULT_SCOPE = '_default';
+export const DEFAULT_COLLECTION = '_default';
+
 export type TickHandler<T> = (this: T, timePassed: number) => void;
 
 export interface WithClause {
@@ -14,9 +17,16 @@ export interface WithClause {
     retain_deleted_xattr?: boolean;
 }
 
-interface SystemIndexesIndex {
+export interface WaitForIndexBuildOptions {
+    timeoutMs?: number;
+    scope?: string;
+    collection?: string;
+}
+
+interface SystemIndex {
     id: string;
     name: string;
+    bucket_id?: string;
     namespace_id: string;
     keyspace_id: string;
     is_primary?: boolean;
@@ -27,8 +37,14 @@ interface SystemIndexesIndex {
     using: string;
 }
 
-interface IndexStatusIndex {
+interface SystemIndexNormalized extends SystemIndex {
+    bucket_id: string;
+}
+
+interface IndexStatus {
     bucket: string;
+    scope?: string;
+    collection?: string;
     index: string;
     hosts: string[];
     numReplica: number;
@@ -36,11 +52,50 @@ interface IndexStatusIndex {
     definition: string;
 }
 
-export interface CouchbaseIndex extends SystemIndexesIndex {
+type IndexStatusNormalized = Required<IndexStatus>
+
+export interface CouchbaseIndex extends Omit<SystemIndex, "bucket_id" | "namespace_id" | "keyspace_id"> {
+    scope: string;
+    collection: string;
     num_replica: number;
     num_partition: number;
     nodes: string[];
     retain_deleted_xattr: boolean;
+}
+
+function normalizeIndex(index: SystemIndex): SystemIndexNormalized {
+    if (!index.bucket_id) {
+        // no bucket_id means we're not in a collection, let's normalize to the default collection
+        return {
+            ...index,
+            bucket_id: index.keyspace_id,
+            namespace_id: DEFAULT_SCOPE,
+            keyspace_id: DEFAULT_COLLECTION,
+        };
+    }
+
+    return index as SystemIndexNormalized;
+}
+
+function normalizeStatus(status: IndexStatus): IndexStatusNormalized {
+    // Older versions of Couchbase Server without scope/collection support won't return those values
+    // Add them if they are missing
+
+    return {
+        scope: DEFAULT_SCOPE,
+        collection: DEFAULT_COLLECTION,
+        ...status
+    };
+}
+
+// Note: Assumes both the index and status have been normalized
+function isStatusMatch(index: CouchbaseIndex, status: IndexStatus): boolean {
+    // Remove (replica X) from the end of the index name
+    const indexName = /^([^\s]*)/.exec(status.index)[1];
+
+    return index.name === indexName &&
+        index.scope == status.scope &&
+        index.collection == status.collection;
 }
 
 /**
@@ -70,7 +125,7 @@ export class IndexManager {
      * Gets all indexes using a query
      * Workaround until https://issues.couchbase.com/projects/JSCBC/issues/JSCBC-772 is resolved
      */
-    private async getAllIndexes(): Promise<SystemIndexesIndex[]> {
+    private async getAllIndexes(): Promise<SystemIndexNormalized[]> {
         let qs = '';
         qs += 'SELECT idx.* FROM system:indexes AS idx';
         qs += ' WHERE keyspace_id="' + this.bucketName + '"';
@@ -78,18 +133,13 @@ export class IndexManager {
 
         const res = await this.cluster.query(qs);
 
-        const indexes: SystemIndexesIndex[] = [];
-        res.rows.forEach((row) => {
-            indexes.push(row);
-        });
-
-        return indexes;
+        return res.rows.map(normalizeIndex);
     }
 
     /**
      * Gets index statuses for the bucket via the cluster manager
      */
-    private async getIndexStatuses(): Promise<IndexStatusIndex[]> {
+    private async getIndexStatuses(): Promise<IndexStatusNormalized[]> {
         const resp = await (this.manager as any)._http.request({
             type: 'MGMT',
             method: 'GET',
@@ -108,44 +158,45 @@ export class IndexManager {
             throw new Error(body.reason);
         }
 
-        const indexStatuses = (body.indexes as IndexStatusIndex[])
+        const indexStatuses = (body.indexes as IndexStatus[])
             .filter((index) => {
                 return index.bucket === this.bucketName;
-            });
+            })
+            .map(normalizeStatus);
 
         return indexStatuses;
     }
 
-    async getIndexes(): Promise<CouchbaseIndex[]> {
-        // We'll enrich the return value with missing fields
-        const indexes = await this.getAllIndexes() as CouchbaseIndex[];
+    async getIndexes(scope?: string, collection?: string): Promise<CouchbaseIndex[]> {
+        const indexes: CouchbaseIndex[] = (await this.getAllIndexes())
+            .filter(index => !scope || (index.namespace_id === scope && index.keyspace_id === collection))
+            .map(index => ({
+                // Enrich with additional fields. These will be further updated using status below.
+                ...index,
+                scope: index.namespace_id, // Call to normalizeIndex above will ensure this is the scope
+                collection: index.keyspace_id, // Call to normalizeIndex above will ensure this is the collection
+                nodes: [] as string[],
+                num_replica: -1,
+                num_partition: 1,
+                retain_deleted_xattr: false
+            }));
 
-        // Get additional info from the index status API
+        // Get additional info from the index status API, and map by name
         const statuses = await this.getIndexStatuses();
 
         // Apply hosts from index status API to index information
         statuses.forEach((status) => {
-            // remove (replica X) from the end of the index name
-            const indexName = /^([^\s]*)/.exec(status.index)[1];
-
-            const index = indexes.find((index) => index.name === indexName) as CouchbaseIndex;
+            const index = indexes.find((index) => isStatusMatch(index, status)) as CouchbaseIndex;
             if (index) {
-                if (!index.nodes) {
-                    index.nodes = [];
-                }
-
                 // add any hosts listed to index info
                 // but only for the first if partitioned (others will be dupes)
                 if (!index.partition || index.nodes.length === 0) {
                     index.nodes.push(...status.hosts);
                 }
 
-                // if this is the first found, set to 0, otherwise add 1
-                if (index.num_replica === undefined) {
-                    index.num_replica = 0;
-                } else {
-                    index.num_replica++;
-                }
+                // Each status record we find beyond the first indicates one replica
+                // We started at -1 so if there aren't any replicas we'll end at 0
+                index.num_replica++;
 
                 index.retain_deleted_xattr =
                     /"retain_deleted_xattr"\s*:\s*true/.test(status.definition);
@@ -203,27 +254,27 @@ export class IndexManager {
     /**
      * Builds any outstanding deferred indexes on the bucket
      */
-    async buildDeferredIndexes(): Promise<string[]> {
-        // Workaround for https://issues.couchbase.com/browse/JSCBC-771, we must build ourselves
+    async buildDeferredIndexes(scope = DEFAULT_SCOPE, collection = DEFAULT_COLLECTION): Promise<string[]> {
+        // Because the built-in buildDeferredIndexes doesn't filter by scope/collection, we must build ourselves
 
-        const indices = await this.manager.getAllIndexes(this.bucketName);
-
-        const deferredList = [];
-        for (let i = 0; i < indices.length; ++i) {
-            const index = indices[i];
-
-            if (index.state === 'deferred' || index.state === 'pending') {
-                deferredList.push(index.name);
-            }
-        }
+        const deferredList = (await this.getAllIndexes())
+            .filter(index => 
+                index.namespace_id === scope && 
+                index.keyspace_id == collection &&
+                (index.state === 'deferred' || index.state === 'pending'))
+            .map(index => index.name);
 
         // If there are no deferred indexes, we have nothing to do.
         if (deferredList.length === 0) {
             return;
         }
 
+        const keyspace = scope === DEFAULT_SCOPE && collection === DEFAULT_COLLECTION
+            ? `\`${this.bucketName}\``
+            : `\`${this.bucketName}\`.\`${scope}\`.\`${collection}\``;
+
         let qs = '';
-        qs += 'BUILD INDEX ON `' + this.bucketName + '` ';
+        qs += `BUILD INDEX ON ${keyspace} `;
         qs += '(';
         for (let j = 0; j < deferredList.length; ++j) {
             if (j > 0) {
@@ -242,7 +293,13 @@ export class IndexManager {
     /**
      * Monitors building indexes and triggers a Promise when complete
      */
-    async waitForIndexBuild<T = void>(timeoutMilliseconds?: number, tickHandler?: TickHandler<T>, thisObj?: T): Promise<boolean> {
+    async waitForIndexBuild<T = void>(options?: WaitForIndexBuildOptions, tickHandler?: TickHandler<T>, thisObj?: T): Promise<boolean> {
+        options = {
+            ...options,
+            scope: DEFAULT_SCOPE,
+            collection: DEFAULT_COLLECTION
+        };
+
         const startTime = Date.now();
         let lastTick = startTime;
 
@@ -259,11 +316,14 @@ export class IndexManager {
             }
         }
 
-        while (!timeoutMilliseconds ||
-            (Date.now() - startTime < timeoutMilliseconds)) {
-            const indexes = await this.getIndexes();
+        while (!options.timeoutMs ||
+            (Date.now() - startTime < options.timeoutMs)) {
+            const indexes = (await this.getIndexes())
+                .filter(index => index.scope === options.scope &&
+                    index.collection == options.collection && 
+                    index.state !== 'online');
 
-            if (!indexes.find((p) => p.state !== 'online')) {
+            if (indexes.length === 0) {
                 // All indexes are online
                 return true;
             }
