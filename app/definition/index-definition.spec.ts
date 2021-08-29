@@ -4,7 +4,7 @@ import chaiThings from 'chai-things';
 import { stub } from 'sinon';
 import sinonChai from 'sinon-chai';
 import { Lifecycle, Partition, PartitionStrategy } from '../configuration';
-import { CouchbaseIndex, IndexManager } from '../index-manager';
+import { CouchbaseIndex, DEFAULT_COLLECTION, DEFAULT_SCOPE, IndexManager } from '../index-manager';
 import { CreateIndexMutation } from '../plan/create-index-mutation';
 import { MoveIndexMutation } from '../plan/move-index-mutation';
 import { ResizeIndexMutation } from '../plan/resize-index-mutation';
@@ -18,8 +18,8 @@ use(sinonChai);
 const defaultFakeIndex: CouchbaseIndex = {
     id: 'fake',
     name: 'fake',
-    namespace_id: 'default',
-    keyspace_id: 'default',
+    scope: DEFAULT_SCOPE,
+    collection: DEFAULT_COLLECTION,
     index_key: ['id'],
     num_replica: 0,
     num_partition: 0,
@@ -1157,6 +1157,54 @@ describe('getMutation automatic replica node changes', function() {
                 phase: 1,
             })
             .and.to.satisfy((m) => m.isSafe());
+    });
+});
+
+describe('getMutation scope/collection', function() {
+    it('matches default scope/collection', function() {
+        const def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            nodes: ['a:8091'],
+        });
+
+        const mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091']
+                },
+            ].map(fakeIndex)
+        })];
+
+        expect(mutations)
+            .to.have.length(0);
+    });
+
+    it('does not match specific scope/collection with the same name', function() {
+        const def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            nodes: ['a:8091'],
+        });
+
+        const mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    scope: 'inventory',
+                    collection: 'hotel',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091']
+                },
+            ].map(fakeIndex)
+        })];
+
+        expect(mutations)
+            .to.have.length(1);
+        expect(mutations[0])
+            .to.be.instanceOf(CreateIndexMutation);
     });
 });
 
