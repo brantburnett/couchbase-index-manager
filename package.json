@@ -8,7 +8,8 @@
     "watch": "tsc --watch",
     "lint": "eslint ./ && markdownlint -i node_modules ./**/*.md",
     "test": "jest",
-    "test.watch": "jest --watch"
+    "test.watch": "jest --watch",
+    "exec": "npm run build && ./bin/couchbase-index-manager -c couchbase://node1.cbindexmgr,node2.cbindexmgr,node3.cbindexmgr -u Administrator -p password"
   },
   "bin": {
     "couchbase-index-manager": "bin/couchbase-index-manager"
