@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { padStart, flatten } from 'lodash';
-import { IndexManager } from '../index-manager';
+import { IndexManager, WaitForIndexBuildOptions } from '../index-manager';
 import { IndexMutation } from './index-mutation';
 import { Logger } from '../options';
 
@@ -137,8 +137,11 @@ export class Plan {
             }
             await this.manager.buildDeferredIndexes();
 
-            if (!await this.manager.waitForIndexBuild(
-                this.options.buildTimeout, this.indexBuildTickHandler, this)) {
+            const waitOptions: WaitForIndexBuildOptions = {
+                timeoutMs: this.options.buildTimeout
+            }
+
+            if (!await this.manager.waitForIndexBuild(waitOptions, this.indexBuildTickHandler, this)) {
                 this.options.logger.warn(
                     chalk.yellowBright('Some indexes are not online'));
             }

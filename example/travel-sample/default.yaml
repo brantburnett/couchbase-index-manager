@@ -1,0 +1,11 @@
+name: def_primary
+is_primary: true
+---
+name: def_airportname 
+index_key:
+- airportname
+---
+name: def_name_type
+index_key:
+- name
+condition: _type = 'User'

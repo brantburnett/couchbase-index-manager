@@ -7,7 +7,7 @@ import { MoveIndexMutation } from '../plan/move-index-mutation';
 import { ResizeIndexMutation } from '../plan/resize-index-mutation';
 import { FeatureVersions, Version } from '../feature-versions';
 import { IndexValidators } from '../configuration/index-validation';
-import { CouchbaseIndex, IndexManager, WithClause } from '../index-manager';
+import { CouchbaseIndex, DEFAULT_COLLECTION, DEFAULT_SCOPE, IndexManager, WithClause } from '../index-manager';
 import { IndexConfiguration, IndexConfigurationBase, Lifecycle, Partition, PartitionStrategy, PostProcessHandler } from '../configuration';
 import { IndexMutation } from '../plan/index-mutation';
 
@@ -331,13 +331,18 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
      * Tests to see if a Couchbase index matches this definition
      */
     private isMatch(index: CouchbaseIndex, suffix?: string): boolean {
+        // First validate we're in the correct collection
+        // TODO: Allow definition to specify a scope/collection
+        if (index.scope !== DEFAULT_SCOPE || index.collection !== DEFAULT_COLLECTION) {
+            return false;
+        }
+
+        // Then validate the name
         if (this.is_primary) {
             // Consider any primary index a match, regardless of name
             return index.is_primary;
         } else {
-            return (
-                ensureEscaped(this.name + (suffix || '')) ===
-                ensureEscaped(index.name));
+            return ensureEscaped(this.name + (suffix || '')) === ensureEscaped(index.name);
         }
     }
 
