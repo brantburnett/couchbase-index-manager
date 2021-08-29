@@ -8,8 +8,8 @@ charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
 
-[*.js]
-max_line_length = 80
+[*.{js,ts}]
+max_line_length = 120
 
 [*.json]
 indent_size = 2

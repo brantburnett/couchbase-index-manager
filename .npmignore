@@ -15,3 +15,4 @@ Dockerfile
 /scripts
 /testbin
 /env
+.env
