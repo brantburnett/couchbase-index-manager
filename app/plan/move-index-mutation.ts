@@ -8,6 +8,8 @@ import { Logger } from '../options';
  * Represents an index mutation which updates an existing index
  */
 export class MoveIndexMutation extends IndexMutation {
+    private nodes: string[];
+
     /**
      * @param {IndexDefinition} definition Index definition
      * @param {string} name Name of the index to mutate
@@ -16,6 +18,12 @@ export class MoveIndexMutation extends IndexMutation {
      */
     constructor(definition: IndexDefinition, name: string, private unsupported: boolean) {
         super(definition, name);
+
+        if (!definition.nodes) {
+            throw new Error('Missing nodes on IndexDefinition');
+        }
+
+        this.nodes = definition.nodes;
     }
 
     print(logger: Logger): void {
@@ -27,7 +35,7 @@ export class MoveIndexMutation extends IndexMutation {
             `  Move: ${this.name}`));
 
         logger.info(color(
-            ` Nodes: ${this.definition.nodes.join()}`));
+            ` Nodes: ${this.nodes.join()}`));
 
         if (this.unsupported) {
             logger.info(color(
@@ -38,7 +46,7 @@ export class MoveIndexMutation extends IndexMutation {
 
     async execute(manager: IndexManager): Promise<void> {
         if (!this.unsupported) {
-            await manager.moveIndex(this.name, this.definition.nodes);
+            await manager.moveIndex(this.name, this.nodes);
         }
     }
 }

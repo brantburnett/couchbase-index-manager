@@ -49,6 +49,6 @@ export class ConnectionManager {
      * Closes the Couchbase connection.
     */
     private close(): void {
-        this.cluster.close();
+        this.cluster?.close();
     }
 }
