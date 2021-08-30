@@ -63,7 +63,8 @@ export function run(): void {
             const bucketName = cmd.validateSyntax as string;
             if (bucketName) {
                 const connectionInfo: ConnectionInfo = {
-                    ...parseBaseOptions(validateCommand.parent),
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    ...parseBaseOptions(validateCommand.parent!),
                     bucketName: bucketName,
                 };
 
@@ -102,7 +103,8 @@ export function run(): void {
         )
         .action(async (bucketName: string, path: string, cmd: { buildTimeout: string, force: boolean, dryRun: boolean, safe: boolean }) => {
             const connectionInfo: ConnectionInfo = {
-                ...parseBaseOptions(syncCommand.parent),
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                ...parseBaseOptions(syncCommand.parent!),
                 bucketName,
             };
 
@@ -114,7 +116,8 @@ export function run(): void {
                 buildTimeout: parseInt(cmd.buildTimeout, 10) * 1000,
             };
 
-            if (syncCommand.parent.getOptionValue('quiet')) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            if (syncCommand.parent!.getOptionValue('quiet')) {
                 options.logger = {
                     ...console,
                     info: () => { /* Suppress info output for quiet */ },

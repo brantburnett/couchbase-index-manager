@@ -29,7 +29,7 @@ export class Validator {
             await this.validateSyntax(manager, definitions, nodeMap);
         }
 
-        this.options.logger.log(
+        this.options.logger?.log(
             chalk.greenBright('Definitions validated, no errors found.'));
     }
 

@@ -4,6 +4,7 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "build",
       "type": "typescript",
       "tsconfig": "tsconfig.json",
       "problemMatcher": [
@@ -13,6 +14,16 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "watch",
+      "type": "npm",
+      "script": "watch",
+      "isBackground": true,
+      "problemMatcher": [
+        "$tsc-watch"
+      ],
+      "group": "build"
     },
     {
       "type": "npm",

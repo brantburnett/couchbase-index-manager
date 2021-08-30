@@ -3,14 +3,21 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "allowJs": true,
     "target": "es6",
     "outDir": "./dist",
     "sourceMap": true,
+    "importHelpers": true,
+    "declaration": true,
+
     "noImplicitAny": true,
     "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "strictBindCallApply": true,
-    "importHelpers": true
+    "strictFunctionTypes": true,
+    "strictNullChecks": true
   },
   "include": [
     "./app/**/*"

@@ -41,7 +41,7 @@ export class Sync {
             return;
         } else if (options.interactive && options.confirmationPrompt) {
             if (!(await this.confirm())) {
-                options.logger.info(
+                options.logger?.info(
                     chalk.yellowBright('Cancelling due to user input...'));
                 return;
             }
@@ -59,7 +59,7 @@ export class Sync {
             await definitionLoader.loadDefinitions(this.paths);
 
         if (definitions.length === 0) {
-            this.options.logger.warn(
+            this.options.logger?.warn(
                 chalk.yellowBright('No index definitions found'));
         }
 

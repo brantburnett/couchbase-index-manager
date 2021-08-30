@@ -22,7 +22,7 @@ function validateDefinition<T>(validatorSet: ValidatorSet<T>, definition: T) {
     for (key in validatorSet) {
         try {
             if (key !== 'post_validate') {
-                validatorSet[key].call(definition, definition[key]);
+                validatorSet[key]?.call(definition, definition[key]);
             }
         } catch (e) {
             throw new Error(
@@ -109,7 +109,7 @@ export class DefinitionLoader {
         if (ext === '.json') {
             handler(JSON.parse(contents));
         } else if (ext === '.yaml' || ext === '.yml') {
-            yaml.loadAll(contents, handler);
+            yaml.loadAll(contents, handler as (doc: unknown) => void);
         }
     }
 
@@ -134,7 +134,7 @@ export class DefinitionLoader {
                         handler(JSON.parse(data));
                     } else {
                         // Assume it's YAML
-                        yaml.loadAll(data, handler);
+                        yaml.loadAll(data, handler as (doc: unknown) => void);
                     }
 
                     resolve();

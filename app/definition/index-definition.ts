@@ -59,13 +59,13 @@ type KeyProcessorSet = {
     [key in keyof IndexConfigurationBase]?: KeyProcessor<IndexConfigurationBase[key]>;
 }
 
-function processKey<K extends keyof IndexConfigurationBase>(index: IndexConfigurationBase, key: K,
+function processKey<K extends keyof IndexConfigurationBase>(index: IndexDefinition, key: K,
     processor: KeyProcessor<IndexConfigurationBase[K]>, initialValue: any) {
 
     const result = processor.call(index, initialValue);
 
     if (result !== undefined) {
-        index[key] = result;
+        index[key] = result as IndexDefinition[K];
     }
 }
 
@@ -134,7 +134,7 @@ const keys: KeyProcessorSet = {
         return undefined;
     },
     post_process: function(this: IndexDefinition, val: any) {
-        let fn: PostProcessHandler;
+        let fn: PostProcessHandler | null = null;
 
         if (_.isFunction(val)) {
             fn = val;
@@ -142,9 +142,7 @@ const keys: KeyProcessorSet = {
             fn = new Function('require', 'process', val) as PostProcessHandler;
         }
 
-        if (fn) {
-            fn.call(this, require, process);
-        }
+        fn?.call(this, require, process);
 
         return undefined;
     },
@@ -189,12 +187,13 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
         let key: keyof typeof keys;
         for (key in keys) {
             if (applyMissing || override[key] !== undefined) {
-                processKey(this, key, keys[key], override[key]);
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                processKey(this, key, keys[key]!, override[key]);
             }
         }
 
         // Validate the resulting defintion
-        IndexValidators.post_validate.call(this);
+        IndexValidators.post_validate?.call(this);
     }
 
     /**
@@ -226,7 +225,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
         yield* mutations;
     }
 
-    private * getMutation(context: MutationContext, replicaNum?: number, forceDrop?: boolean): Iterable<IndexMutation> {
+    private * getMutation(context: MutationContext, replicaNum = 0, forceDrop = false): Iterable<IndexMutation> {
         const suffix = !replicaNum ?
             '' :
             `_replica${replicaNum}`;
@@ -235,7 +234,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
             return this.isMatch(index, suffix);
         });
 
-        const drop = forceDrop || this.lifecycle.drop;
+        const drop = forceDrop || this.lifecycle?.drop;
 
         if (!currentIndex) {
             // Index isn't found
@@ -291,7 +290,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
             };
         } else {
             withClause = {
-                nodes: this.nodes && [ensurePort(this.nodes[replicaNum])],
+                nodes: this.nodes && [ensurePort(this.nodes[replicaNum ?? 0])],
             };
         }
 
@@ -340,7 +339,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
         // Then validate the name
         if (this.is_primary) {
             // Consider any primary index a match, regardless of name
-            return index.is_primary;
+            return !!index.is_primary;
         } else {
             return ensureEscaped(this.name + (suffix || '')) === ensureEscaped(index.name);
         }
@@ -504,7 +503,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
             // We only care about specific node mappings for manual replicas
             // For auto replicas we let Couchbase handle it
 
-            const newNodeList = [];
+            const newNodeList: string[] = [];
             const unused = _.clone(this.nodes);
 
             for (let replicaNum=0; replicaNum<=this.num_replica; replicaNum++) {
@@ -530,8 +529,12 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
             // Fill in the remaining nodes that didn't have a match
             for (let replicaNum=0; replicaNum<=this.num_replica; replicaNum++) {
                 if (!newNodeList[replicaNum]) {
-                    newNodeList[replicaNum] =
-                        unused.shift();
+                    const nextUnused = unused.shift();
+                    if (!nextUnused) {
+                        throw new Error('Should be unreachable');
+                    }
+
+                    newNodeList[replicaNum] = nextUnused;
                 }
             }
 

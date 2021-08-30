@@ -91,7 +91,8 @@ function normalizeStatus(status: IndexStatus): IndexStatusNormalized {
 // Note: Assumes both the index and status have been normalized
 function isStatusMatch(index: CouchbaseIndex, status: IndexStatus): boolean {
     // Remove (replica X) from the end of the index name
-    const indexName = /^([^\s]*)/.exec(status.index)[1];
+    const match = /^([^\s]*)/.exec(status.index)
+    const indexName = match ? match[1] : '';
 
     return index.name === indexName &&
         index.scope == status.scope &&
@@ -266,7 +267,7 @@ export class IndexManager {
 
         // If there are no deferred indexes, we have nothing to do.
         if (deferredList.length === 0) {
-            return;
+            return [];
         }
 
         const keyspace = scope === DEFAULT_SCOPE && collection === DEFAULT_COLLECTION
@@ -293,8 +294,8 @@ export class IndexManager {
     /**
      * Monitors building indexes and triggers a Promise when complete
      */
-    async waitForIndexBuild<T = void>(options?: WaitForIndexBuildOptions, tickHandler?: TickHandler<T>, thisObj?: T): Promise<boolean> {
-        options = {
+    async waitForIndexBuild<T = void>(options: WaitForIndexBuildOptions, tickHandler: TickHandler<T>, thisObj: T): Promise<boolean> {
+        const effectiveOptions = {
             ...options,
             scope: DEFAULT_SCOPE,
             collection: DEFAULT_COLLECTION
@@ -316,11 +317,11 @@ export class IndexManager {
             }
         }
 
-        while (!options.timeoutMs ||
-            (Date.now() - startTime < options.timeoutMs)) {
+        while (!effectiveOptions.timeoutMs ||
+            (Date.now() - startTime < effectiveOptions.timeoutMs)) {
             const indexes = (await this.getIndexes())
-                .filter(index => index.scope === options.scope &&
-                    index.collection == options.collection && 
+                .filter(index => index.scope === effectiveOptions.scope &&
+                    index.collection == effectiveOptions.collection && 
                     index.state !== 'online');
 
             if (indexes.length === 0) {

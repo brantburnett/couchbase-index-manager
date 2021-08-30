@@ -9,7 +9,7 @@
     "lint": "eslint ./ && markdownlint -i node_modules ./**/*.md",
     "test": "jest",
     "test.watch": "jest --watch",
-    "exec": "npm run build && ./bin/couchbase-index-manager -c couchbase://node1.cbindexmgr,node2.cbindexmgr,node3.cbindexmgr -u Administrator -p password"
+    "exec": "./bin/couchbase-index-manager -c couchbase://node1.cbindexmgr,node2.cbindexmgr,node3.cbindexmgr -u Administrator -p password"
   },
   "bin": {
     "couchbase-index-manager": "bin/couchbase-index-manager"
@@ -50,6 +50,8 @@
     "@types/node": "^16.7.2",
     "@types/sinon": "^10.0.2",
     "@types/sinon-chai": "^3.2.5",
+    "@typescript-eslint/eslint-plugin": "^4.29.3",
+    "@typescript-eslint/parser": "^4.29.3",
     "babel-jest": "^27.0.6",
     "chai": "^4.3.4",
     "chai-arrays": "^2.2.0",
@@ -60,11 +62,9 @@
     "sinon": "^11.1.2",
     "sinon-chai": "^3.7.0",
     "source-map-support": "^0.5.19",
-    "typescript": "^4.3.5"
+    "typescript": "^4.4.2"
   },
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "^4.29.3",
-    "@typescript-eslint/parser": "^4.29.3",
     "chalk": "^2.3.1",
     "commander": "^8.1.0",
     "couchbase": "^3.2.0",
@@ -72,6 +72,6 @@
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.15",
     "source-map-support": "^0.5.19",
-    "tslib": "^1.14.1"
+    "tslib": "^2.3.1"
   }
 }

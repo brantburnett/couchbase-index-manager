@@ -114,7 +114,7 @@ export const IndexValidators: ValidatorSet<IndexConfigurationBase> = {
 
         if (!this.partition && this.nodes) {
             // Validate nodes and num_replica values
-            if (this.nodes.length !== this.num_replica + 1) {
+            if (this.nodes.length !== (this.num_replica ?? 0) + 1) {
                 throw new Error('mismatch between num_replica and nodes');
             }
         }
