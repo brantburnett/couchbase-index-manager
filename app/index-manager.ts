@@ -1,6 +1,7 @@
 import { Bucket, Cluster, DropQueryIndexOptions, QueryIndexManager } from 'couchbase';
 import { isString } from 'lodash';
 import { Version } from './feature-versions';
+import { ensureEscaped } from './util';
 
 const WAIT_TICK_INTERVAL = 10000; // in milliseconds
 
@@ -27,6 +28,7 @@ interface SystemIndex {
     id: string;
     name: string;
     bucket_id?: string;
+    scope_id?: string;
     namespace_id: string;
     keyspace_id: string;
     is_primary?: boolean;
@@ -39,6 +41,7 @@ interface SystemIndex {
 
 interface SystemIndexNormalized extends SystemIndex {
     bucket_id: string;
+    scope_id: string;
 }
 
 interface IndexStatus {
@@ -54,7 +57,7 @@ interface IndexStatus {
 
 type IndexStatusNormalized = Required<IndexStatus>
 
-export interface CouchbaseIndex extends Omit<SystemIndex, "bucket_id" | "namespace_id" | "keyspace_id"> {
+export interface CouchbaseIndex extends Omit<SystemIndex, "bucket_id" | "namespace_id" | "scope_id" | "keyspace_id"> {
     scope: string;
     collection: string;
     num_replica: number;
@@ -69,7 +72,7 @@ function normalizeIndex(index: SystemIndex): SystemIndexNormalized {
         return {
             ...index,
             bucket_id: index.keyspace_id,
-            namespace_id: DEFAULT_SCOPE,
+            scope_id: DEFAULT_SCOPE,
             keyspace_id: DEFAULT_COLLECTION,
         };
     }
@@ -95,8 +98,8 @@ function isStatusMatch(index: CouchbaseIndex, status: IndexStatus): boolean {
     const indexName = match ? match[1] : '';
 
     return index.name === indexName &&
-        index.scope == status.scope &&
-        index.collection == status.collection;
+        index.scope === status.scope &&
+        index.collection === status.collection;
 }
 
 /**
@@ -129,7 +132,8 @@ export class IndexManager {
     private async getAllIndexes(): Promise<SystemIndexNormalized[]> {
         let qs = '';
         qs += 'SELECT idx.* FROM system:indexes AS idx';
-        qs += ' WHERE keyspace_id="' + this.bucketName + '"';
+        qs += ` WHERE (bucket_id IS MISSING AND keyspace_id = "${this.bucketName}")`;
+        qs += ` OR bucket_id = "${this.bucketName}"`
         qs += ' AND `using`="gsi" ORDER BY is_primary DESC, name ASC';
 
         const res = await this.cluster.query(qs);
@@ -170,12 +174,12 @@ export class IndexManager {
 
     async getIndexes(scope?: string, collection?: string): Promise<CouchbaseIndex[]> {
         const indexes: CouchbaseIndex[] = (await this.getAllIndexes())
-            .filter(index => !scope || (index.namespace_id === scope && index.keyspace_id === collection))
+            .filter(index => !scope || (index.scope_id === scope && index.keyspace_id === collection))
             .map(index => ({
                 // Enrich with additional fields. These will be further updated using status below.
                 ...index,
-                scope: index.namespace_id, // Call to normalizeIndex above will ensure this is the scope
-                collection: index.keyspace_id, // Call to normalizeIndex above will ensure this is the collection
+                scope: index.scope_id,
+                collection: index.keyspace_id,
                 nodes: [] as string[],
                 num_replica: -1,
                 num_partition: 1,
@@ -258,10 +262,9 @@ export class IndexManager {
     async buildDeferredIndexes(scope = DEFAULT_SCOPE, collection = DEFAULT_COLLECTION): Promise<string[]> {
         // Because the built-in buildDeferredIndexes doesn't filter by scope/collection, we must build ourselves
 
-        const deferredList = (await this.getAllIndexes())
-            .filter(index => 
-                index.namespace_id === scope && 
-                index.keyspace_id == collection &&
+        const deferredList = (await this.getAllIndexes()).filter(index => 
+                index.scope_id === scope && 
+                index.keyspace_id === collection &&
                 (index.state === 'deferred' || index.state === 'pending'))
             .map(index => index.name);
 
@@ -296,9 +299,9 @@ export class IndexManager {
      */
     async waitForIndexBuild<T = void>(options: WaitForIndexBuildOptions, tickHandler: TickHandler<T>, thisObj: T): Promise<boolean> {
         const effectiveOptions = {
-            ...options,
             scope: DEFAULT_SCOPE,
-            collection: DEFAULT_COLLECTION
+            collection: DEFAULT_COLLECTION,
+            ...options,
         };
 
         const startTime = Date.now();
@@ -319,9 +322,9 @@ export class IndexManager {
 
         while (!effectiveOptions.timeoutMs ||
             (Date.now() - startTime < effectiveOptions.timeoutMs)) {
-            const indexes = (await this.getIndexes())
-                .filter(index => index.scope === effectiveOptions.scope &&
-                    index.collection == effectiveOptions.collection && 
+            const indexes = (await this.getAllIndexes())
+                .filter(index => index.scope_id === effectiveOptions.scope &&
+                    index.keyspace_id == effectiveOptions.collection && 
                     index.state !== 'online');
 
             if (indexes.length === 0) {
@@ -345,8 +348,18 @@ export class IndexManager {
     /**
      * Drops an existing index
      */
-    async dropIndex(indexName: string, options?: DropQueryIndexOptions): Promise<void> {
-        await this.manager.dropIndex(this.bucketName, indexName, options);
+    async dropIndex(indexName: string, scope = DEFAULT_SCOPE, collection = DEFAULT_COLLECTION, options?: DropQueryIndexOptions): Promise<void> {
+        if (scope === DEFAULT_SCOPE && collection === DEFAULT_COLLECTION) {
+            await this.manager.dropIndex(this.bucketName, indexName, options);
+        } else {
+            const qs = `DROP INDEX ${ensureEscaped(indexName)} ON ${ensureEscaped(this.bucketName)}.${ensureEscaped(scope)}.${ensureEscaped(collection)}`;
+
+            // Run our deferred build query
+            await this.cluster.query(qs, {
+                parentSpan: options?.parentSpan,
+                timeout: options?.timeout
+            });
+        }
     }
 
     /**

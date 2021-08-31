@@ -1,15 +1,10 @@
 import _ from 'lodash';
-import { IndexDefinitionBase } from './index-definition-base';
-import { CreateIndexMutation } from '../plan/create-index-mutation';
-import { UpdateIndexMutation } from '../plan/update-index-mutation';
-import { DropIndexMutation } from '../plan/drop-index-mutation';
-import { MoveIndexMutation } from '../plan/move-index-mutation';
-import { ResizeIndexMutation } from '../plan/resize-index-mutation';
+import { IndexConfiguration, IndexConfigurationBase, IndexValidators, Lifecycle, Partition, PartitionStrategy, PostProcessHandler } from '../configuration';
 import { FeatureVersions, Version } from '../feature-versions';
-import { IndexValidators } from '../configuration/index-validation';
 import { CouchbaseIndex, DEFAULT_COLLECTION, DEFAULT_SCOPE, IndexManager, WithClause } from '../index-manager';
-import { IndexConfiguration, IndexConfigurationBase, Lifecycle, Partition, PartitionStrategy, PostProcessHandler } from '../configuration';
-import { IndexMutation } from '../plan/index-mutation';
+import { CreateIndexMutation, DropIndexMutation, IndexMutation, MoveIndexMutation, ResizeIndexMutation, UpdateIndexMutation } from '../plan';
+import { ensureEscaped } from '../util';
+import { IndexDefinitionBase } from './index-definition-base';
 
 export interface MutationContext {
     currentIndexes: CouchbaseIndex[];
@@ -28,17 +23,6 @@ interface IndexCreatePlan {
     partition?: {
         exprs: string[];
         strategy: PartitionStrategy;
-    }
-}
-
-/**
- * Ensures that the N1QL identifier is escaped with backticks
- */
-function ensureEscaped(identifier: string): string {
-    if (!identifier.startsWith('`')) {
-        return '`' + identifier.replace(/`/g, '``') + '`';
-    } else {
-        return identifier;
     }
 }
 

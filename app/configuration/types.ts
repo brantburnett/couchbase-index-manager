@@ -34,7 +34,7 @@ export interface IndexConfigurationBase {
     post_process?: string | PostProcessHandler;
 }
 
-export interface IndexConfiguration extends Exclude<IndexConfigurationBase, "post_process"> {
+export interface IndexConfiguration extends Omit<IndexConfigurationBase, "post_process"> {
     type?: ConfigurationType.Index;
 }
 

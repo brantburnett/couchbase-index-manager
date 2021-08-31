@@ -6,7 +6,7 @@ import { DefinitionLoader } from './definition';
 import { FeatureVersions } from './feature-versions';
 import { IndexManager } from './index-manager';
 import { SyncOptions } from './options';
-import { Plan } from './plan/plan';
+import { Plan } from './plan';
 
 /**
  * Executes a synchronization, loading definitions from disk
