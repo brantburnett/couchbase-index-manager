@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { padStart, flatten } from 'lodash';
-import { IndexManager, WaitForIndexBuildOptions } from '../index-manager';
+import { DEFAULT_SCOPE, IndexManager, WaitForIndexBuildOptions } from '../index-manager';
 import { IndexMutation } from './index-mutation';
 import { Logger } from '../options';
 
@@ -125,26 +125,7 @@ export class Plan {
                 }
             }
 
-            this.options.logger.info(
-                chalk.greenBright('Building indexes...'));
-
-            // Wait 3 seconds for index nodes to synchronize before building
-            // This helps to reduce race conditions
-            // https://github.com/brantburnett/couchbase-index-manager/issues/35
-            if (this.options.buildDelay > 0) {
-                await new Promise((resolve) =>
-                    setTimeout(resolve, this.options.buildDelay));
-            }
-            await this.manager.buildDeferredIndexes();
-
-            const waitOptions: WaitForIndexBuildOptions = {
-                timeoutMs: this.options.buildTimeout
-            }
-
-            if (!await this.manager.waitForIndexBuild(waitOptions, this.indexBuildTickHandler, this)) {
-                this.options.logger.warn(
-                    chalk.yellowBright('Some indexes are not online'));
-            }
+            await this.buildIndexes();
         }
 
         if (errorCount === 0) {
@@ -167,6 +148,48 @@ export class Plan {
      */
     addMutation(...mutations: IndexMutation[]): void {
         addMutationsByPhase(mutations, this.mutations);
+    }
+
+    private async buildIndexes(): Promise<void> {
+        // Wait 3 seconds for index nodes to synchronize before building
+        // This helps to reduce race conditions
+        // https://github.com/brantburnett/couchbase-index-manager/issues/35
+        if (this.options.buildDelay > 0) {
+            await new Promise((resolve) =>
+                setTimeout(resolve, this.options.buildDelay));
+        }
+
+        // Get a list of distinct scopes/collections
+        const collections = [...new Set(this.mutations.flat(1).map(index => `${index.scope}~${index.collection}`))]
+            .map(str => {
+                const arr = str.split('~');
+
+                return {
+                    scope: arr[0],
+                    collection: arr[1]
+                }
+            });
+
+        // Build each collection separately
+        for (const collection of collections) {
+            if (collection.scope === DEFAULT_SCOPE) {
+                this.options.logger.info(chalk.greenBright('Building indexes...'));
+            } else {
+                this.options.logger.info(chalk.greenBright(`Building indexes on ${collection.scope}.${collection.collection}...`));
+            }
+            
+            await this.manager.buildDeferredIndexes(collection.scope, collection.collection);
+
+            const waitOptions: WaitForIndexBuildOptions = {
+                ...collection,
+                timeoutMs: this.options.buildTimeout
+            }
+
+            if (!await this.manager.waitForIndexBuild(waitOptions, this.indexBuildTickHandler, this)) {
+                this.options.logger.warn(
+                    chalk.yellowBright('Some indexes are not online'));
+            }
+        }
     }
 
     /**

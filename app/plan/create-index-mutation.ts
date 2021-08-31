@@ -17,7 +17,7 @@ export class CreateIndexMutation extends IndexMutation {
     }
 
     print(logger: Logger): void {
-        logger.info(chalk.greenBright(`Create: ${this.name}`));
+        logger.info(chalk.greenBright(`Create: ${this.displayName}`));
 
         if (this.definition.is_primary) {
             logger.info(
@@ -66,7 +66,7 @@ export class CreateIndexMutation extends IndexMutation {
     }
 
     async execute(indexManager: IndexManager, logger: Logger): Promise<void> {
-        logger.info(chalk.greenBright(`Creating ${this.name}...`));
+        logger.info(chalk.greenBright(`Creating ${this.displayName}...`));
 
         const statement = this.definition.getCreateStatement(
             indexManager.bucketName, this.name, this.withClause

@@ -32,7 +32,7 @@ export class MoveIndexMutation extends IndexMutation {
             chalk.cyanBright;
 
         logger.info(color(
-            `  Move: ${this.name}`));
+            `  Move: ${this.displayName}`));
 
         logger.info(color(
             ` Nodes: ${this.nodes.join()}`));
