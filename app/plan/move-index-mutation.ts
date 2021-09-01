@@ -10,13 +10,7 @@ import { Logger } from '../options';
 export class MoveIndexMutation extends IndexMutation {
     private nodes: string[];
 
-    /**
-     * @param {IndexDefinition} definition Index definition
-     * @param {string} name Name of the index to mutate
-     * @param {boolean} unsupported
-     *     If true, don't actually perform this mutation
-     */
-    constructor(definition: IndexDefinition, name: string, private unsupported: boolean) {
+    constructor(definition: IndexDefinition, name: string) {
         super(definition, name);
 
         if (!definition.nodes) {
@@ -27,26 +21,14 @@ export class MoveIndexMutation extends IndexMutation {
     }
 
     print(logger: Logger): void {
-        const color = this.unsupported ?
-            chalk.yellowBright :
-            chalk.cyanBright;
-
-        logger.info(color(
+        logger.info(chalk.cyanBright(
             `  Move: ${this.displayName}`));
 
-        logger.info(color(
+        logger.info(chalk.cyanBright(
             ` Nodes: ${this.nodes.join()}`));
-
-        if (this.unsupported) {
-            logger.info(color(
-                `  Skip: ALTER INDEX is not supported until CB 5.5`
-            ));
-        }
     }
 
     async execute(manager: IndexManager): Promise<void> {
-        if (!this.unsupported) {
-            await manager.moveIndex(this.name, this.scope, this.collection, this.nodes);
-        }
+        await manager.moveIndex(this.name, this.scope, this.collection, this.nodes);
     }
 }

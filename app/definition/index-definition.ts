@@ -257,8 +257,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
                 }
             } else {
                 if (!_.isEqual(this.nodes, currentIndex.nodes)) {
-                    yield new MoveIndexMutation(this, this.name + suffix,
-                        !FeatureVersions.alterIndex(context.clusterVersion));
+                    yield new MoveIndexMutation(this, this.name + suffix);
                 }
             }
         }

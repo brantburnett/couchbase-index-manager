@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import { extend, isArrayLike } from 'lodash';
 import { DefinitionLoader, IndexDefinition, NodeMap } from './definition';
-import { FeatureVersions } from './feature-versions';
 import { IndexManager } from './index-manager';
 import { ValidateOptions } from './options';
 
@@ -37,15 +36,6 @@ export class Validator {
      * Uses EXPLAIN to validate syntax of the CREATE INDEX statement.
      */
     private async validateSyntax(manager: IndexManager, definitions: IndexDefinition[], nodeMap: NodeMap) {
-        const clusterVersion = await manager.getClusterVersion();
-
-        if (!FeatureVersions.autoReplicas(clusterVersion)) {
-            // Force all definitions to use manual replica management
-            definitions.forEach((def) => {
-                def.manual_replica = true;
-            });
-        }
-
         nodeMap.apply(definitions);
 
         for (const definition of definitions) {

@@ -860,41 +860,7 @@ describe('getMutation automatic replica node changes', function() {
             .to.be.instanceof(MoveIndexMutation)
             .and.to.include({
                 name: 'test',
-                phase: 1,
-                unsupported: false,
-            });
-    });
-
-    it('returns unsupported for 5.1 cluster', function() {
-        const def = new IndexDefinition({
-            name: 'test',
-            index_key: '`key`',
-            nodes: ['a', 'b'],
-        });
-
-        const mutations = [...def.getMutations({
-            currentIndexes: [
-                {
-                    name: 'test',
-                    index_key: ['`key`'],
-                    nodes: ['a:8091', 'c:8091'],
-                    num_replica: 1,
-                },
-            ].map(fakeIndex),
-            clusterVersion: {
-                major: 5,
-                minor: 1,
-            },
-        })];
-
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(MoveIndexMutation)
-            .and.to.include({
-                name: 'test',
-                phase: 1,
-                unsupported: true,
+                phase: 1
             });
     });
 
