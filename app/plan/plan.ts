@@ -125,7 +125,7 @@ export class Plan {
                 }
             }
 
-            await this.buildIndexes();
+            await this.buildIndexes(phase);
         }
 
         if (errorCount === 0) {
@@ -150,7 +150,7 @@ export class Plan {
         addMutationsByPhase(mutations, this.mutations);
     }
 
-    private async buildIndexes(): Promise<void> {
+    private async buildIndexes(phase: IndexMutation[]): Promise<void> {
         // Wait 3 seconds for index nodes to synchronize before building
         // This helps to reduce race conditions
         // https://github.com/brantburnett/couchbase-index-manager/issues/35
@@ -160,7 +160,7 @@ export class Plan {
         }
 
         // Get a list of distinct scopes/collections
-        const collections = [...new Set(this.mutations.flat(1).map(index => `${index.scope}~${index.collection}`))]
+        const collections = [...new Set(phase.map(index => `${index.scope}~${index.collection}`))]
             .map(str => {
                 const arr = str.split('~');
 
