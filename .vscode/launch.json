@@ -16,8 +16,8 @@
                 "-p",
                 "password",
                 "sync",
-                "beer-sample",
-                "./example/beer-sample"
+                "travel-sample",
+                "./example/travel-sample"
             ],
             "console": "integratedTerminal",
             "sourceMaps": true,

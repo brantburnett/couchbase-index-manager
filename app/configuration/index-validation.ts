@@ -91,6 +91,10 @@ export const IndexValidators: ValidatorSet<IndexConfigurationBase> = {
         }
     },
     post_validate: function(): void {
+        if (!!this.scope !== !!this.collection) {
+            throw new Error('if scope is supplied collection must also be supplied');
+        }
+
         if (!this.is_primary) {
             const isDrop = this.lifecycle && this.lifecycle.drop;
 

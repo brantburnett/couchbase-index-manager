@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { IndexConfiguration, IndexConfigurationBase, IndexValidators, Lifecycle, Partition, PartitionStrategy, PostProcessHandler } from '../configuration';
 import { FeatureVersions, Version } from '../feature-versions';
-import { CouchbaseIndex, DEFAULT_COLLECTION, DEFAULT_SCOPE, IndexManager, WithClause } from '../index-manager';
+import { CouchbaseIndex, DEFAULT_SCOPE, IndexManager, WithClause } from '../index-manager';
 import { CreateIndexMutation, DropIndexMutation, IndexMutation, MoveIndexMutation, ResizeIndexMutation, UpdateIndexMutation } from '../plan';
 import { ensureEscaped } from '../util';
 import { IndexDefinitionBase } from './index-definition-base';
@@ -315,8 +315,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
      */
     private isMatch(index: CouchbaseIndex, suffix?: string): boolean {
         // First validate we're in the correct collection
-        // TODO: Allow definition to specify a scope/collection
-        if (index.scope !== DEFAULT_SCOPE || index.collection !== DEFAULT_COLLECTION) {
+        if (index.scope !== this.scope || index.collection !== this.collection) {
             return false;
         }
 
@@ -398,13 +397,17 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
 
         indexName = ensureEscaped(indexName || this.name);
 
+        const keyspace = this.scope === DEFAULT_SCOPE
+            ? ensureEscaped(bucketName)
+            : `${ensureEscaped(bucketName)}.${ensureEscaped(this.scope)}.${ensureEscaped(this.collection)}`;
+
         let statement;
         if (this.is_primary) {
             statement = `CREATE PRIMARY INDEX ${indexName}`;
-            statement += ` ON ${ensureEscaped(bucketName)}`;
+            statement += ` ON ${keyspace}`;
         } else {
             statement = `CREATE INDEX ${indexName}`;
-            statement += ` ON ${ensureEscaped(bucketName)}`;
+            statement += ` ON ${keyspace}`;
             statement += ` (${this.index_key.join(', ')})`;
         }
 
