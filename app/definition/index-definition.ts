@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { IndexConfiguration, IndexConfigurationBase, IndexValidators, Lifecycle, Partition, PartitionStrategy, PostProcessHandler } from '../configuration';
 import { FeatureVersions, Version } from '../feature-versions';
-import { CouchbaseIndex, getKeyspace, IndexManager, WithClause } from '../index-manager';
+import { CouchbaseIndex, getKeyspace, IndexCreatePlan, IndexManager, WithClause } from '../index-manager';
 import { CreateIndexMutation, DropIndexMutation, IndexMutation, MoveIndexMutation, ResizeIndexMutation, UpdateIndexMutation } from '../plan';
 import { ensureEscaped } from '../util';
 import { IndexDefinitionBase } from './index-definition-base';
@@ -9,21 +9,6 @@ import { IndexDefinitionBase } from './index-definition-base';
 export interface MutationContext {
     currentIndexes: CouchbaseIndex[];
     clusterVersion?: Version;
-}
-
-/**
- * Subset of fields returned on a query plan for CREATE INDEX
- */
-interface IndexCreatePlan {
-    keys: {
-        expr: string
-        desc: boolean;
-    }[];
-    where?: string;
-    partition?: {
-        exprs: string[];
-        strategy: PartitionStrategy;
-    }
 }
 
 /**

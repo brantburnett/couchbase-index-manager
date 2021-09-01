@@ -29,8 +29,8 @@ export interface IndexConfigurationBase {
     collection?: string;
     is_primary?: boolean;
     index_key?: string | string[];
-    condition?: string;
-    partition?: Partition;
+    condition?: string | null;
+    partition?: Partition | null;
     manual_replica?: boolean;
     num_replica?: number;
     nodes?: string[];

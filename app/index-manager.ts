@@ -1,5 +1,6 @@
 import { Bucket, Cluster, DropQueryIndexOptions, QueryIndexManager } from 'couchbase';
 import { isString } from 'lodash';
+import { PartitionStrategy } from './configuration';
 import { Version } from './feature-versions';
 import { ensureEscaped } from './util';
 
@@ -64,6 +65,27 @@ export interface CouchbaseIndex extends Omit<SystemIndex, "bucket_id" | "namespa
     num_partition: number;
     nodes: string[];
     retain_deleted_xattr: boolean;
+}
+
+export interface CreateIndexPlanKey {
+    expr: string;
+    desc?: boolean;
+}
+
+interface IndexCreatePlanUnnormalized {
+    keys?: CreateIndexPlanKey[] | string[];
+    where?: string;
+    partition?: {
+        exprs: string[];
+        strategy: PartitionStrategy;
+    }
+}
+
+/**
+ * Subset of fields returned on a query plan for CREATE INDEX
+ */
+export interface IndexCreatePlan extends IndexCreatePlanUnnormalized {
+    keys?: CreateIndexPlanKey[];
 }
 
 function normalizeIndex(index: SystemIndex): SystemIndexNormalized {
@@ -434,10 +456,14 @@ export class IndexManager {
     /**
      * Uses EXPLAIN to get a query plan for a statement
      */
-    async getQueryPlan(statement: string): Promise<any> {
+    async getQueryPlan(statement: string): Promise<IndexCreatePlan> {
         statement = 'EXPLAIN ' + statement;
 
-        const explain = await this.cluster.query(statement);
+        const explain = (await this.cluster.query(statement)) as {
+            rows: {
+                plan: IndexCreatePlanUnnormalized
+            }[]
+        };
 
         const plan = explain.rows[0].plan;
 
@@ -448,6 +474,6 @@ export class IndexManager {
                 isString(key) ? {expr: key} : key);
         }
 
-        return plan;
+        return plan as IndexCreatePlan;
     }
 }
