@@ -8,13 +8,13 @@ import { Logger } from '../options';
  */
 export class DropIndexMutation extends IndexMutation {
     print(logger: Logger): void {
-        logger.info(chalk.redBright(`Delete: ${this.name}`));
+        logger.info(chalk.redBright(`Delete: ${this.displayName}`));
     }
 
     async execute(indexManager: IndexManager, logger: Logger): Promise<void> {
-        logger.info(chalk.redBright(`Deleting ${this.name}...`));
+        logger.info(chalk.redBright(`Deleting ${this.displayName}...`));
 
-        await indexManager.dropIndex(this.name);
+        await indexManager.dropIndex(this.name, this.scope, this.collection);
     }
 
     isSafe(): boolean {

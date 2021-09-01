@@ -17,7 +17,7 @@ export class ResizeIndexMutation extends IndexMutation {
         const color = chalk.cyanBright;
 
         logger.info(color(
-            `Resize: ${this.name}`));
+            `Resize: ${this.displayName}`));
 
         logger.info(color(
             `  Repl: ${this.definition.num_replica}`));

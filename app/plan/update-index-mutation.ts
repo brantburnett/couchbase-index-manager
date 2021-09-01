@@ -22,7 +22,7 @@ export class UpdateIndexMutation extends IndexMutation {
     print(logger: Logger): void {
         logger.info(
             chalk.cyanBright(
-                `Update: ${this.name}`));
+                `Update: ${this.displayName}`));
 
         if (!isEqual(this.existingIndex.index_key, this.definition.index_key)) {
             logger.info(
