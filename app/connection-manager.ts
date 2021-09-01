@@ -24,11 +24,13 @@ export class ConnectionManager {
     async execute<T>(handler: (manager: IndexManager) => T): Promise<T> {
         const manager = await this.bootstrap();
 
-        const result = await handler(manager);
+        try {
+            const result = await handler(manager);
 
-        await this.close();
-
-        return result;
+            return result;
+        } finally {
+            await this.close();
+        }
     }
 
     /**

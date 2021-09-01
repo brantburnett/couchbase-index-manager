@@ -23,7 +23,7 @@ function handleAsync(promise: Promise<any>): void {
     promise.catch((err) => {
         console.error(chalk.redBright(err.stack));
 
-        process.exit(1);
+        process.exitCode = 1;
     });
 }
 
