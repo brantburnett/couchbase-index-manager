@@ -8,7 +8,7 @@ const WAIT_TICK_INTERVAL = 10000; // in milliseconds
 export const DEFAULT_SCOPE = '_default';
 export const DEFAULT_COLLECTION = '_default';
 
-export type TickHandler<T> = (this: T, timePassed: number) => void;
+export type TickHandler = (timePassed: number) => void;
 
 export interface WithClause {
     action?: string;
@@ -315,7 +315,7 @@ export class IndexManager {
     /**
      * Monitors building indexes and triggers a Promise when complete
      */
-    async waitForIndexBuild<T = void>(options: WaitForIndexBuildOptions, tickHandler: TickHandler<T>, thisObj: T): Promise<boolean> {
+    async waitForIndexBuild(options: WaitForIndexBuildOptions, tickHandler: TickHandler): Promise<boolean> {
         const effectiveOptions = {
             scope: DEFAULT_SCOPE,
             collection: DEFAULT_COLLECTION,
@@ -333,7 +333,7 @@ export class IndexManager {
                 lastTick = now;
 
                 if (tickHandler) {
-                    tickHandler.call(thisObj, now - startTime);
+                    tickHandler(now - startTime);
                 }
             }
         }

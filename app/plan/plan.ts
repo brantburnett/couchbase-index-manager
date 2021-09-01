@@ -185,7 +185,7 @@ export class Plan {
                 timeoutMs: this.options.buildTimeout
             }
 
-            if (!await this.manager.waitForIndexBuild(waitOptions, this.indexBuildTickHandler, this)) {
+            if (!await this.manager.waitForIndexBuild(waitOptions, this.indexBuildTickHandler.bind(this))) {
                 this.options.logger.warn(
                     chalk.yellowBright('Some indexes are not online'));
             }
