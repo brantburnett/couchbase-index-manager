@@ -26,7 +26,7 @@ export class ConnectionManager {
 
         const result = await handler(manager);
 
-        this.close();
+        await this.close();
 
         return result;
     }
@@ -48,7 +48,10 @@ export class ConnectionManager {
     /**
      * Closes the Couchbase connection.
     */
-    private close(): void {
-        this.cluster?.close();
+    private async close(): Promise<void> {
+        await this.cluster?.close();
+
+        this.cluster = undefined;
+        this.bucket = undefined;
     }
 }
