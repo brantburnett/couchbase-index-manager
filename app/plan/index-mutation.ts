@@ -25,10 +25,9 @@ export abstract class IndexMutation {
     constructor(public definition: IndexDefinition, name?: string) {
         this.definition = definition;
         this.name = name || definition.name;
+        this.scope = definition.scope;
+        this.collection = definition.collection;
         this.phase = 1;
-
-        this.scope = DEFAULT_SCOPE;
-        this.collection = DEFAULT_COLLECTION;
     }
 
     abstract execute(indexManager: IndexManager, logger: Logger): Promise<void>;

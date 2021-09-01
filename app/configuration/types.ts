@@ -1,3 +1,6 @@
+import { DEFAULT_COLLECTION, DEFAULT_SCOPE } from "../index-manager";
+import { ensureEscaped } from "../util";
+
 export enum PartitionStrategy {
     Hash = "HASH"
 }
@@ -22,6 +25,8 @@ export type PostProcessHandler = (this: IndexConfigurationBase, require: NodeReq
 
 export interface IndexConfigurationBase {
     name?: string;
+    scope?: string;
+    collection?: string;
     is_primary?: boolean;
     index_key?: string | string[];
     condition?: string;
@@ -59,4 +64,10 @@ export function isOverride(item: ConfigurationItem): item is OverrideConfigurati
 
 export function isNodeMap(item: ConfigurationItem): item is NodeMapConfiguration {
     return item.type === ConfigurationType.NodeMap;
+}
+
+export function isSameIndex(a: IndexConfigurationBase, b: IndexConfigurationBase): boolean {
+    return (a.scope ?? DEFAULT_SCOPE) === (b.scope ?? DEFAULT_SCOPE) &&
+        (a.collection ?? DEFAULT_COLLECTION) === (b.collection ?? DEFAULT_COLLECTION) &&
+        ensureEscaped(a.name) === ensureEscaped(b.name);
 }

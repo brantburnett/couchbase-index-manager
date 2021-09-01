@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import { isObjectLike } from 'lodash';
 import path from 'path';
 import util from 'util';
-import { ConfigurationItem, ConfigurationType, IndexConfigurationBase, IndexValidators, isIndex, isNodeMap, isOverride, NodeMapConfiguration, NodeMapValidators, ValidatorSet } from '../configuration';
+import { ConfigurationItem, ConfigurationType, IndexConfigurationBase, IndexValidators, isIndex, isNodeMap, isOverride, isSameIndex, NodeMapConfiguration, NodeMapValidators, ValidatorSet } from '../configuration';
 import { Logger } from '../options';
 import { IndexDefinition } from './index-definition';
 import { NodeMap } from './node-map';
@@ -17,27 +17,27 @@ const INDEX_EXTENSIONS = ['.json', '.yaml', '.yml'];
 
 type ConfigItemHandler = (item: ConfigurationItem) => void;
 
-function validateDefinition<T>(validatorSet: ValidatorSet<T>, definition: T) {
+function validateConfiguration<T>(validatorSet: ValidatorSet<T>, configuration: T) {
     let key: keyof ValidatorSet<T>;
     for (key in validatorSet) {
         try {
             if (key !== 'post_validate') {
-                validatorSet[key]?.call(definition, definition[key]);
+                validatorSet[key]?.call(configuration, configuration[key]);
             }
         } catch (e) {
             throw new Error(
-                `${e} in ${(definition as any).name || 'unk'}.${key}`);
+                `${e} in ${(configuration as any).name || 'unk'}.${key}`);
         }
     }
 
     // Don't perform post_validate step on overrides, as overrides
     // don't have the full set of properties.
-    if (validatorSet.post_validate && !isOverride(definition as unknown as ConfigurationItem)) {
+    if (validatorSet.post_validate && !isOverride(configuration as unknown as ConfigurationItem)) {
         try {
-            validatorSet.post_validate.call(definition);
+            validatorSet.post_validate.call(configuration);
         } catch (e) {
             throw new Error(
-                `${e} in ${(definition as any).name || 'unk'}`);
+                `${e} in ${(configuration as any).name || 'unk'}`);
         }
     }
 }
@@ -64,7 +64,7 @@ export class DefinitionLoader {
             if (filePath === '-') {
                 // read from stdin
                 await this.loadFromStdIn(
-                    (def) => this.processDefinition(definitions, nodeMap, def));
+                    (def) => this.processConfiguration(definitions, nodeMap, def));
 
                 continue;
             }
@@ -90,7 +90,7 @@ export class DefinitionLoader {
 
         for (let i=0; i<files.length; i++) {
             await this.loadDefinition(files[i],
-                (def) => this.processDefinition(definitions, nodeMap, def));
+                (def) => this.processConfiguration(definitions, nodeMap, def));
         }
 
         return {
@@ -149,42 +149,45 @@ export class DefinitionLoader {
      * Processes a definition and adds to the current definitions or
      *     applies overrides to the matching definition
      */
-    private processDefinition(definitions: IndexDefinition[], nodeMap: NodeMap, definition: ConfigurationItem): void {
-        const match = definitions.find((p) => p.name === (definition as any).name);
-
-        if (definition.type === undefined) {
-            definition.type = ConfigurationType.Index;
+    private processConfiguration(definitions: IndexDefinition[], nodeMap: NodeMap, configuration: ConfigurationItem): void {
+        let match: IndexDefinition | undefined;
+        if (isOverride(configuration) || isIndex(configuration)) {
+            match = definitions.find((p) => isSameIndex(p, configuration));
         }
 
-        this.validateDefinition(definition, match);
+        if (configuration.type === undefined) {
+            configuration.type = ConfigurationType.Index;
+        }
 
-        if (isNodeMap(definition)) {
-            if (definition.map && isObjectLike(definition.map)) {
-                nodeMap.merge(definition.map);
+        this.validateConfiguration(configuration, match);
+
+        if (isNodeMap(configuration)) {
+            if (configuration.map && isObjectLike(configuration.map)) {
+                nodeMap.merge(configuration.map);
             } else {
                 throw new Error('Invalid nodeMap');
             }
-        } else if (isOverride(definition)) {
+        } else if (isOverride(configuration)) {
             // Override definition
             if (match) {
-                match.applyOverride(definition);
+                match.applyOverride(configuration);
             } else {
                 // Ignore overrides with no matching index
                 this.logger.warn(
                     chalk.yellowBright(
-                        `No index definition found '${definition.name}'`));
+                        `No index definition found '${configuration.name}'`));
             }
-        } else if (isIndex(definition)) {
+        } else if (isIndex(configuration)) {
             // Regular index definition
 
             if (match) {
                 throw new Error(
-                    `Duplicate index definition '${definition.name}'`);
+                    `Duplicate index definition '${configuration.name}'`);
             }
 
-            definitions.push(new IndexDefinition(definition));
+            definitions.push(new IndexDefinition(configuration));
         } else {
-            throw new Error(`Unknown definition type '${(definition as any).type}'`);
+            throw new Error(`Unknown definition type '${(configuration as any).type}'`);
         }
     }
 
@@ -192,8 +195,8 @@ export class DefinitionLoader {
      * Validates a definition based on its type, throwing an exception
      * if there is a problem.
      */
-    private validateDefinition(definition: ConfigurationItem, match?: IndexDefinition) {
-        let effectiveType = definition.type;
+    private validateConfiguration(configuration: ConfigurationItem, match?: IndexDefinition) {
+        let effectiveType = configuration.type;
         if (effectiveType === ConfigurationType.Override && match) {
             // Use validators based on the type of definition being overriden
 
@@ -204,11 +207,11 @@ export class DefinitionLoader {
 
         switch (effectiveType) {
             case ConfigurationType.Index:
-                validateDefinition(IndexValidators, definition as IndexConfigurationBase);
+                validateConfiguration(IndexValidators, configuration as IndexConfigurationBase);
                 break;
 
             case ConfigurationType.NodeMap:
-                validateDefinition(NodeMapValidators, definition as NodeMapConfiguration);
+                validateConfiguration(NodeMapValidators, configuration as NodeMapConfiguration);
                 break;
         }
     }

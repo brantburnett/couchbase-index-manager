@@ -9,3 +9,15 @@ name: def_name_type
 index_key:
 - name
 condition: _type = 'User'
+---
+name: def_inventory_hotel_url
+scope: inventory
+collection: hotel
+index_key:
+- url
+---
+name: def_inventory_route_stops
+scope: inventory
+collection: route
+index_key:
+- stops
