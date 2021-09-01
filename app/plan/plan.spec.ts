@@ -4,8 +4,6 @@ import { IndexManager } from '../index-manager';
 import { CreateIndexMutation } from './create-index-mutation';
 import { Plan, PlanOptions } from './plan';
 
-import "jest-extended";
-
 const MockManager = jest.fn<IndexManager, []>(() => ({
     buildDeferredIndexes: jest.fn().mockResolvedValue([]),
     waitForIndexBuild: jest.fn().mockResolvedValue(true),
