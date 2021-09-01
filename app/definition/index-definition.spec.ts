@@ -88,7 +88,7 @@ describe('ctor', function() {
     it('secondary index without index_key throws error', function() {
         expect(() => new IndexDefinition({
             name: 'test',
-            index_key: null,
+            index_key: undefined,
         }))
             .to.throw();
     });
@@ -290,14 +290,9 @@ describe('applyOverride', function() {
     });
 
     it('secondary index without index_key throws error', function() {
-        const def = new IndexDefinition({
+        expect(() => new IndexDefinition({
             name: 'test',
-            index_key: 'key',
-        });
-
-        expect(() => def.applyOverride({
-            name: 'test',
-            index_key: null,
+            index_key: undefined,
         }))
             .to.throw();
     });
@@ -518,7 +513,7 @@ describe('applyOverride', function() {
 
         expect(def.partition)
             .to.have.property('strategy', 'other');
-        expect(def.partition.exprs)
+        expect(def.partition?.exprs)
             .is.equalTo(partition.exprs);
     });
 
@@ -542,7 +537,7 @@ describe('applyOverride', function() {
 
         expect(def.partition)
             .to.have.property('strategy', PartitionStrategy.Hash);
-        expect(def.partition.exprs)
+        expect(def.partition?.exprs)
             .is.equalTo(['test3']);
     });
 });
@@ -758,7 +753,7 @@ describe('getMutation manual replica node changes', function() {
                 name: 'test_replica1',
                 phase: 1,
             })
-            .and.to.satisfy((m) => m.isSafe());
+            .and.to.satisfy((m: UpdateIndexMutation) => m.isSafe());
     });
 
     it('ignores node swap', function() {
@@ -817,7 +812,7 @@ describe('getMutation manual replica node changes', function() {
                 name: 'test',
                 phase: 2,
             })
-            .and.to.satisfy((m) => m.isSafe());
+            .and.to.satisfy((m: UpdateIndexMutation) => m.isSafe());
 
         const creates = mutations.filter((m) => m instanceof CreateIndexMutation);
         expect(creates)
@@ -920,7 +915,7 @@ describe('getMutation automatic replica node changes', function() {
                 name: 'test',
                 phase: 1,
             })
-            .and.to.satisfy((m) => !m.isSafe());
+            .and.to.satisfy((m: UpdateIndexMutation) => !m.isSafe());
     });
 
     it('num_replica addition from zero gives unsafe update', function() {
@@ -953,7 +948,7 @@ describe('getMutation automatic replica node changes', function() {
                 name: 'test',
                 phase: 1,
             })
-            .and.to.satisfy((m) => !m.isSafe());
+            .and.to.satisfy((m: UpdateIndexMutation) => !m.isSafe());
     });
 
     it('num_replica change gives resize on 6.5', function() {
@@ -986,7 +981,7 @@ describe('getMutation automatic replica node changes', function() {
                 name: 'test',
                 phase: 1,
             })
-            .and.to.satisfy((m) => m.isSafe());
+            .and.to.satisfy((m: ResizeIndexMutation) => m.isSafe());
     });
 
     it('num_replica addition from zero gives resize on 6.5', function() {
@@ -1019,7 +1014,7 @@ describe('getMutation automatic replica node changes', function() {
                 name: 'test',
                 phase: 1,
             })
-            .and.to.satisfy((m) => m.isSafe());
+            .and.to.satisfy((m: ResizeIndexMutation) => m.isSafe());
     });
 
     it('partitioned num_replica change gives unsafe update', function() {
@@ -1056,7 +1051,7 @@ describe('getMutation automatic replica node changes', function() {
                 name: 'test',
                 phase: 1,
             })
-            .and.to.satisfy((m) => !m.isSafe());
+            .and.to.satisfy((m: UpdateIndexMutation) => !m.isSafe());
     });
 
     it('node length change gives unsafe update', function() {
@@ -1089,7 +1084,7 @@ describe('getMutation automatic replica node changes', function() {
                 name: 'test',
                 phase: 1,
             })
-            .and.to.satisfy((m) => !m.isSafe());
+            .and.to.satisfy((m: UpdateIndexMutation) => !m.isSafe());
     });
 
     it('node length change gives resize on 6.5', function() {
@@ -1122,7 +1117,7 @@ describe('getMutation automatic replica node changes', function() {
                 name: 'test',
                 phase: 1,
             })
-            .and.to.satisfy((m) => m.isSafe());
+            .and.to.satisfy((m: ResizeIndexMutation) => m.isSafe());
     });
 });
 

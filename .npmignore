@@ -16,3 +16,4 @@ Dockerfile
 /testbin
 /env
 .env
+/.devcontainer
