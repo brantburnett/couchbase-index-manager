@@ -23,8 +23,4 @@
   "include": [
     "./app/**/*"
   ],
-  "exclude": [
-    "./app/**/*.spec.ts",
-    "./app/**/*.spec.js"
-  ]
 }
