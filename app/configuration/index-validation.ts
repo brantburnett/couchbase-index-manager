@@ -58,7 +58,7 @@ export const IndexValidators: ValidatorSet<IndexConfigurationBase> = {
     },
     nodes: function(val) {
         if (val !== undefined) {
-            if (!_.isArrayLike(val)) {
+            if (!_.isArray(val)) {
                 throw new Error('nodes must be an array of strings');
             }
 

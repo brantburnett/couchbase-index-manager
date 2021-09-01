@@ -99,6 +99,6 @@ export class Sync {
             message: 'Execute index sync plan?',
         });
 
-        return answers.confirm;
+        return !!answers.confirm;
     }
 }

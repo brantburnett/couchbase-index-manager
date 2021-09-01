@@ -15,7 +15,7 @@ export interface MutationContext {
  * Ensures that a server name has a port number appended, defaults to 8091
  */
 function ensurePort(server: string): string {
-    if (server.match(/:\d+$/)) {
+    if (/:\d+$/.exec(server)) {
         return server;
     } else {
         return server + ':8091';
@@ -51,7 +51,7 @@ const keys: KeyProcessorSet = {
         _.isString(val) ?
             _.compact([val]) :
             Array.from(val),
-    condition: (val: any) => val || '',
+    condition: (val: any) => val as string ?? '',
     partition: function(this: IndexDefinition, val: any) {
         // For overrides, ignore undefined
         // But clear the entire value if null
@@ -83,11 +83,11 @@ const keys: KeyProcessorSet = {
     manual_replica: (val: any) => !!val,
     num_replica: function(this: IndexDefinition, val: any) {
         if (!this.partition) {
-            return val || (this.nodes ? this.nodes.length-1 : 0);
+            return val as number ?? (this.nodes ? this.nodes.length-1 : 0);
         } else {
             // for partitioned index, num_replica and nodes
             // are decoupled so skip nodes check
-            return val || 0;
+            return val as number ?? 0;
         }
     },
     retain_deleted_xattr: (val: any) => !!val,
@@ -108,6 +108,7 @@ const keys: KeyProcessorSet = {
         if (_.isFunction(val)) {
             fn = val;
         } else if (_.isString(val)) {
+            // eslint-disable-next-line @typescript-eslint/no-implied-eval
             fn = new Function('require', 'process', val) as PostProcessHandler;
         }
 

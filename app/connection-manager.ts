@@ -21,7 +21,7 @@ export class ConnectionManager {
     /**
      * Runs the process
      */
-    async execute<T>(handler: (manager: IndexManager) => T): Promise<T> {
+    async execute<T>(handler: (manager: IndexManager) => Promise<T>): Promise<T> {
         const manager = await this.bootstrap();
 
         try {

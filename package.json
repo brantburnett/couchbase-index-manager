@@ -57,6 +57,8 @@
     "chai-arrays": "^2.2.0",
     "chai-things": "^0.2.0",
     "eslint": "^7.32.0",
+    "eslint-plugin-jest": "^24.4.0",
+    "eslint-plugin-node": "^11.1.0",
     "jest": "^27.0.6",
     "markdownlint-cli": "^0.16.0",
     "sinon": "^11.1.2",

@@ -129,7 +129,7 @@ export class DefinitionLoader {
 
             process.stdin.on('end', () => {
                 try {
-                    if (data.match(/^\s*{/)) {
+                    if (/^\s*{/.exec(data)) {
                         // Appears to be JSON
                         handler(JSON.parse(data));
                     } else {

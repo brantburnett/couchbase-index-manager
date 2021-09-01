@@ -7,7 +7,7 @@ import { SyncOptions } from './options';
 
 // We use require since this file is above our TS base path
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pkg = require('./../package.json');
+const pkg: { version: string } = require('./../package.json');
 
 import 'source-map-support/register';
 
