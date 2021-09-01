@@ -34,8 +34,5 @@ module.exports = {
     '@typescript-eslint/no-unsafe-member-access': 'off',
     '@typescript-eslint/no-unsafe-assignment': 'off',
     'node/no-unsupported-features/es-syntax': ['error', { ignores: ['modules'] }], // Since we're using TypeScript
-    'jest/valid-expect': 'off', // We're still using Chai
-    'jest/no-conditional-expect': 'off', // We're still using Chai
-    'jest/no-try-expect': 'off', // We're still using Chai
   }
 }

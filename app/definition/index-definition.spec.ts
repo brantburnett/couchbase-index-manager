@@ -1,8 +1,3 @@
-import { expect, use } from 'chai';
-import chaiArrays from 'chai-arrays';
-import chaiThings from 'chai-things';
-import { stub } from 'sinon';
-import sinonChai from 'sinon-chai';
 import { Lifecycle, Partition, PartitionStrategy } from '../configuration';
 import { CouchbaseIndex, DEFAULT_COLLECTION, DEFAULT_SCOPE, IndexManager } from '../index-manager';
 import { CreateIndexMutation } from '../plan/create-index-mutation';
@@ -10,10 +5,6 @@ import { MoveIndexMutation } from '../plan/move-index-mutation';
 import { ResizeIndexMutation } from '../plan/resize-index-mutation';
 import { UpdateIndexMutation } from '../plan/update-index-mutation';
 import { IndexDefinition } from './index-definition';
-
-use(chaiArrays);
-use(chaiThings);
-use(sinonChai);
 
 const defaultFakeIndex: CouchbaseIndex = {
     id: 'fake',
@@ -43,8 +34,7 @@ describe('ctor', function() {
             index_key: 'key',
         });
 
-        expect(def.name)
-            .to.equal('test');
+        expect(def.name).toBe('test');
     });
 
     it('applies index_key string', function() {
@@ -54,7 +44,7 @@ describe('ctor', function() {
         });
 
         expect(def.index_key)
-            .to.be.equalTo(['key']);
+            .toStrictEqual(['key']);
     });
 
     it('applies index_key array', function() {
@@ -64,7 +54,7 @@ describe('ctor', function() {
         });
 
         expect(def.index_key)
-            .to.be.equalTo(['key1', 'key2']);
+            .toStrictEqual(['key1', 'key2']);
     });
 
     it('primary key with index_key throws error', function() {
@@ -72,8 +62,7 @@ describe('ctor', function() {
             name: 'test',
             is_primary: true,
             index_key: ['key'],
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('primary key with condition throws error', function() {
@@ -81,24 +70,21 @@ describe('ctor', function() {
             name: 'test',
             is_primary: true,
             condition: '(`type` = "predicate")',
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('secondary index without index_key throws error', function() {
         expect(() => new IndexDefinition({
             name: 'test',
             index_key: undefined,
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('secondary index with empty index_key throws error', function() {
         expect(() => new IndexDefinition({
             name: 'test',
             index_key: [],
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('manual replica with partition throws error', function() {
@@ -109,8 +95,7 @@ describe('ctor', function() {
             partition: {
                 exprs: ['type'],
             },
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('node list sets num_replica', function() {
@@ -120,8 +105,7 @@ describe('ctor', function() {
             nodes: ['a', 'b'],
         });
 
-        expect(def.num_replica)
-            .to.equal(1);
+        expect(def.num_replica).toBe(1);
     });
 
     it('no node list keeps num_replica', function() {
@@ -131,8 +115,7 @@ describe('ctor', function() {
             num_replica: 2,
         });
 
-        expect(def.num_replica)
-            .to.equal(2);
+        expect(def.num_replica).toBe(2);
     });
 
     it('no num_replica is 0', function() {
@@ -141,8 +124,7 @@ describe('ctor', function() {
             index_key: 'key',
         });
 
-        expect(def.num_replica)
-            .to.equal(0);
+        expect(def.num_replica).toBe(0);
     });
 
     it('no manual_replica is false', function() {
@@ -151,8 +133,7 @@ describe('ctor', function() {
             index_key: 'key',
         });
 
-        expect(def.manual_replica)
-            .to.equal(false);
+        expect(def.manual_replica).toBe(false);
     });
 
     it('manual_replica sets value', function() {
@@ -162,8 +143,7 @@ describe('ctor', function() {
             manual_replica: true,
         });
 
-        expect(def.manual_replica)
-            .to.equal(true);
+        expect(def.manual_replica).toBe(true);
     });
 
     it('lifecycle copies values', function() {
@@ -177,10 +157,8 @@ describe('ctor', function() {
             lifecycle: lifecycle,
         });
 
-        expect(def.lifecycle)
-            .to.not.equal(lifecycle);
-        expect(def.lifecycle)
-            .to.deep.equal(lifecycle);
+        expect(def.lifecycle).not.toBe(lifecycle);
+        expect(def.lifecycle).toEqual(lifecycle);
     });
 
     it('partition copies values', function() {
@@ -195,10 +173,8 @@ describe('ctor', function() {
             partition: partition,
         });
 
-        expect(def.partition)
-            .to.not.equal(partition);
-        expect(def.partition)
-            .to.deep.equal(partition);
+        expect(def.partition).not.toBe(partition);
+        expect(def.partition).toEqual(partition);
     });
 
     it('partition null is undefined', function() {
@@ -208,8 +184,7 @@ describe('ctor', function() {
             partition: null,
         });
 
-        expect(def.partition)
-            .to.be.undefined;
+        expect(def.partition).toBeUndefined();
     });
 
     it('no retain_deleted_xattr is false', function() {
@@ -218,8 +193,7 @@ describe('ctor', function() {
             index_key: 'key',
         });
 
-        expect(def.retain_deleted_xattr)
-            .to.equal(false);
+        expect(def.retain_deleted_xattr).toBe(false);
     });
 
     it('retain_deleted_xattr sets value', function() {
@@ -229,8 +203,7 @@ describe('ctor', function() {
             retain_deleted_xattr: true,
         });
 
-        expect(def.retain_deleted_xattr)
-            .to.equal(true);
+        expect(def.retain_deleted_xattr).toBe(true);
     });
 });
 
@@ -246,7 +219,7 @@ describe('applyOverride', function() {
         });
 
         expect(def.index_key)
-            .to.be.equalTo(['key2']);
+            .toStrictEqual(['key2']);
     });
 
     it('applies index_key array', function() {
@@ -260,7 +233,7 @@ describe('applyOverride', function() {
         });
 
         expect(def.index_key)
-            .to.be.equalTo(['key3', 'key4']);
+            .toStrictEqual(['key3', 'key4']);
     });
 
     it('primary key with index_key throws error', function() {
@@ -272,8 +245,7 @@ describe('applyOverride', function() {
         expect(() => def.applyOverride({
             name: 'test',
             index_key: ['key'],
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('primary key with condition throws error', function() {
@@ -285,16 +257,14 @@ describe('applyOverride', function() {
         expect(() => def.applyOverride({
             name: 'test',
             condition: '(`type` = "predicate")',
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('secondary index without index_key throws error', function() {
         expect(() => new IndexDefinition({
             name: 'test',
             index_key: undefined,
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('secondary index with empty index_key throws error', function() {
@@ -306,8 +276,7 @@ describe('applyOverride', function() {
         expect(() => def.applyOverride({
             name: 'test',
             index_key: [],
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('manual replica with partition throws error', function() {
@@ -321,8 +290,7 @@ describe('applyOverride', function() {
             partition: {
                 exprs: ['type'],
             },
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('node list sets num_replica', function() {
@@ -335,8 +303,7 @@ describe('applyOverride', function() {
             nodes: ['a', 'b'],
         });
 
-        expect(def.num_replica)
-            .to.equal(1);
+        expect(def.num_replica).toBe(1);
     });
 
     it('no node list keeps num_replica', function() {
@@ -349,8 +316,7 @@ describe('applyOverride', function() {
             num_replica: 2,
         });
 
-        expect(def.num_replica)
-            .to.equal(2);
+        expect(def.num_replica).toBe(2);
     });
 
     it('nodes and num_replica mismatch throws', function() {
@@ -362,8 +328,7 @@ describe('applyOverride', function() {
         expect(() => def.applyOverride({
             nodes: ['a'],
             num_replica: 2,
-        }))
-            .to.throw();
+        })).toThrowError();
     });
 
     it('partitioned nodes and num_replica mismatch succeeds', function() {
@@ -380,10 +345,8 @@ describe('applyOverride', function() {
             num_replica: 2,
         });
 
-        expect(def.nodes)
-            .to.have.length(3);
-        expect(def.num_replica)
-            .to.equal(2);
+        expect(def.nodes).toHaveLength(3);
+        expect(def.num_replica).toBe(2);
     });
 
     it('nodes and num_replica match succeeds', function() {
@@ -397,10 +360,8 @@ describe('applyOverride', function() {
             num_replica: 2,
         });
 
-        expect(def.nodes)
-            .to.have.length(3);
-        expect(def.num_replica)
-            .to.equal(2);
+        expect(def.nodes).toHaveLength(3);
+        expect(def.num_replica).toBe(2);
     });
 
     it('no manual_replica is unchanged', function() {
@@ -412,8 +373,7 @@ describe('applyOverride', function() {
 
         def.applyOverride({});
 
-        expect(def.manual_replica)
-            .to.equal(true);
+        expect(def.manual_replica).toBe(true);
     });
 
     it('manual_replica sets value', function() {
@@ -426,8 +386,7 @@ describe('applyOverride', function() {
             manual_replica: true,
         });
 
-        expect(def.manual_replica)
-            .to.equal(true);
+        expect(def.manual_replica).toBe(true);
     });
 
     it('lifecycle copies values', function() {
@@ -447,12 +406,9 @@ describe('applyOverride', function() {
             lifecycle: lifecycle,
         });
 
-        expect(def.lifecycle)
-            .to.not.equal(lifecycle);
-        expect(def.lifecycle)
-            .to.have.property('initial', 1);
-        expect(def.lifecycle)
-            .to.have.property('drop', true);
+        expect(def.lifecycle).not.toBe(lifecycle);
+        expect(def.lifecycle).toHaveProperty('initial', 1);
+        expect(def.lifecycle).toHaveProperty('drop', true);
     });
 
     it('partition undefined leaves unmodified', function() {
@@ -469,8 +425,7 @@ describe('applyOverride', function() {
 
         def.applyOverride({});
 
-        expect(def.partition)
-            .to.deep.equal(partition);
+        expect(def.partition).toEqual(partition);
     });
 
     it('partition null clears', function() {
@@ -489,8 +444,7 @@ describe('applyOverride', function() {
             partition: null,
         });
 
-        expect(def.partition)
-            .to.be.undefined;
+        expect(def.partition).toBeUndefined();
     });
 
     it('partition updates strategy', function() {
@@ -511,10 +465,9 @@ describe('applyOverride', function() {
             } as unknown as Partition,
         });
 
-        expect(def.partition)
-            .to.have.property('strategy', 'other');
+        expect(def.partition).toHaveProperty('strategy', 'other');
         expect(def.partition?.exprs)
-            .is.equalTo(partition.exprs);
+            .toStrictEqual(partition.exprs);
     });
 
     it('partition replaces exprs', function() {
@@ -535,10 +488,9 @@ describe('applyOverride', function() {
             },
         });
 
-        expect(def.partition)
-            .to.have.property('strategy', PartitionStrategy.Hash);
+        expect(def.partition).toHaveProperty('strategy', PartitionStrategy.Hash);
         expect(def.partition?.exprs)
-            .is.equalTo(['test3']);
+            .toStrictEqual(['test3']);
     });
 });
 
@@ -563,8 +515,7 @@ describe('getMutation partition change', function() {
             ],
         })];
 
-        expect(mutations)
-            .to.have.length(0);
+        expect(mutations).toHaveLength(0);
     });
 
     it('ignores matching num_partition', function() {
@@ -589,8 +540,7 @@ describe('getMutation partition change', function() {
             ].map(fakeIndex),
         })];
 
-        expect(mutations)
-            .to.have.length(0);
+        expect(mutations).toHaveLength(0);
     });
 
     it('ignores missing num_partition', function() {
@@ -614,8 +564,7 @@ describe('getMutation partition change', function() {
             ].map(fakeIndex),
         })];
 
-        expect(mutations)
-            .to.have.length(0);
+        expect(mutations).toHaveLength(0);
     });
 
     it('updates if partition does not match', function() {
@@ -638,10 +587,8 @@ describe('getMutation partition change', function() {
             ].map(fakeIndex),
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(UpdateIndexMutation);
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(UpdateIndexMutation);
     });
 
     it('updates if num_partition does not match', function() {
@@ -666,10 +613,8 @@ describe('getMutation partition change', function() {
             ].map(fakeIndex),
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(UpdateIndexMutation);
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(UpdateIndexMutation);
     });
 
     it('updates if partition removed', function() {
@@ -689,10 +634,8 @@ describe('getMutation partition change', function() {
             ].map(fakeIndex),
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(UpdateIndexMutation);
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(UpdateIndexMutation);
     });
 
     it('updates if partition added', function() {
@@ -714,10 +657,8 @@ describe('getMutation partition change', function() {
             ].map(fakeIndex),
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(UpdateIndexMutation);
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(UpdateIndexMutation);
     });
 });
 
@@ -745,15 +686,13 @@ describe('getMutation manual replica node changes', function() {
             ].map(fakeIndex),
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(UpdateIndexMutation)
-            .and.to.satisfy((m: UpdateIndexMutation) => m.isSafe())
-            .and.to.include({
-                name: 'test_replica1',
-                phase: 1,
-            });
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(UpdateIndexMutation)
+        expect(mutations[0].isSafe()).toBe(true);
+        expect(mutations[0]).toMatchObject({
+            name: 'test_replica1',
+            phase: 1,
+        });
     });
 
     it('ignores node swap', function() {
@@ -779,8 +718,7 @@ describe('getMutation manual replica node changes', function() {
             ].map(fakeIndex),
         })];
 
-        expect(mutations)
-            .to.have.length(0);
+        expect(mutations).toHaveLength(0);
     });
 
     it('creates new replicas first', function() {
@@ -801,25 +739,20 @@ describe('getMutation manual replica node changes', function() {
             ].map(fakeIndex),
         })];
 
-        expect(mutations)
-            .to.have.length(3);
+        expect(mutations).toHaveLength(3);
 
         const updates = mutations.filter((m) => m instanceof UpdateIndexMutation);
-        expect(updates)
-            .to.have.length(1);
-        expect(updates[0])
-            .and.to.satisfy((m: UpdateIndexMutation) => m.isSafe())
-            .and.to.include({
-                name: 'test',
-                phase: 2,
-            });
+        expect(updates).toHaveLength(1);
+        expect(mutations[0].isSafe()).toBe(true);
+        expect(mutations[0]).toMatchObject({
+            name: 'test',
+            phase: 2,
+        });
 
         const creates = mutations.filter((m) => m instanceof CreateIndexMutation);
-        expect(creates)
-            .to.have.length(2);
+        expect(creates).toHaveLength(2);
         for (const create of creates) {
-            expect(create)
-                .to.include({
+            expect(create).toMatchObject({
                     phase: 1,
                 });
         }
@@ -849,14 +782,12 @@ describe('getMutation automatic replica node changes', function() {
             },
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(MoveIndexMutation)
-            .and.to.include({
-                name: 'test',
-                phase: 1
-            });
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(MoveIndexMutation);
+        expect(mutations[0]).toMatchObject({
+            name: 'test',
+            phase: 1
+        });
     });
 
     it('ignores node swap', function() {
@@ -881,8 +812,7 @@ describe('getMutation automatic replica node changes', function() {
             },
         })];
 
-        expect(mutations)
-            .to.have.length(0);
+        expect(mutations).toHaveLength(0);
     });
 
     it('num_replica change gives unsafe update', function() {
@@ -907,15 +837,13 @@ describe('getMutation automatic replica node changes', function() {
             },
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(UpdateIndexMutation)
-            .and.to.satisfy((m: UpdateIndexMutation) => !m.isSafe())
-            .and.to.include({
-                name: 'test',
-                phase: 1,
-            });
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(UpdateIndexMutation);
+        expect(mutations[0].isSafe()).toBe(false);
+        expect(mutations[0]).toMatchObject({
+            name: 'test',
+            phase: 1,
+        });
     });
 
     it('num_replica addition from zero gives unsafe update', function() {
@@ -940,15 +868,13 @@ describe('getMutation automatic replica node changes', function() {
             },
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(UpdateIndexMutation)
-            .and.to.satisfy((m: UpdateIndexMutation) => !m.isSafe())
-            .and.to.include({
-                name: 'test',
-                phase: 1,
-            });
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(UpdateIndexMutation);
+        expect(mutations[0].isSafe()).toBe(false);
+        expect(mutations[0]).toMatchObject({
+            name: 'test',
+            phase: 1,
+        });
     });
 
     it('num_replica change gives resize on 6.5', function() {
@@ -973,15 +899,13 @@ describe('getMutation automatic replica node changes', function() {
             },
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(ResizeIndexMutation)
-            .and.to.satisfy((m: ResizeIndexMutation) => m.isSafe())
-            .and.to.include({
-                name: 'test',
-                phase: 1,
-            });
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(ResizeIndexMutation)
+        expect(mutations[0].isSafe()).toBe(true);
+        expect(mutations[0]).toMatchObject({
+            name: 'test',
+            phase: 1,
+        });
     });
 
     it('num_replica addition from zero gives resize on 6.5', function() {
@@ -1006,15 +930,13 @@ describe('getMutation automatic replica node changes', function() {
             },
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(ResizeIndexMutation)
-            .and.to.satisfy((m: ResizeIndexMutation) => m.isSafe())
-            .and.to.include({
-                name: 'test',
-                phase: 1,
-            });
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(ResizeIndexMutation)
+        expect(mutations[0].isSafe()).toBe(true);
+        expect(mutations[0]).toMatchObject({
+            name: 'test',
+            phase: 1,
+        });
     });
 
     it('partitioned num_replica change gives unsafe update', function() {
@@ -1043,15 +965,13 @@ describe('getMutation automatic replica node changes', function() {
             },
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(UpdateIndexMutation)
-            .and.to.satisfy((m: UpdateIndexMutation) => !m.isSafe())
-            .and.to.include({
-                name: 'test',
-                phase: 1,
-            });
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(UpdateIndexMutation)
+        expect(mutations[0].isSafe()).toBe(false);
+        expect(mutations[0]).toMatchObject({
+            name: 'test',
+            phase: 1,
+        });
     });
 
     it('node length change gives unsafe update', function() {
@@ -1076,15 +996,13 @@ describe('getMutation automatic replica node changes', function() {
             },
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(UpdateIndexMutation)
-            .and.to.satisfy((m: UpdateIndexMutation) => !m.isSafe())
-            .and.to.include({
-                name: 'test',
-                phase: 1,
-            });
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(UpdateIndexMutation)
+        expect(mutations[0].isSafe()).toBe(false);
+        expect(mutations[0]).toMatchObject({
+            name: 'test',
+            phase: 1,
+        });
     });
 
     it('node length change gives resize on 6.5', function() {
@@ -1109,15 +1027,13 @@ describe('getMutation automatic replica node changes', function() {
             },
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceof(ResizeIndexMutation)
-            .and.to.satisfy((m: ResizeIndexMutation) => m.isSafe())
-            .and.to.include({
-                name: 'test',
-                phase: 1,
-            });
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(ResizeIndexMutation)
+        expect(mutations[0].isSafe()).toBe(true);
+        expect(mutations[0]).toMatchObject({
+            name: 'test',
+            phase: 1,
+        });
     });
 });
 
@@ -1139,8 +1055,7 @@ describe('getMutation scope/collection', function() {
             ].map(fakeIndex)
         })];
 
-        expect(mutations)
-            .to.have.length(0);
+        expect(mutations).toHaveLength(0);
     });
 
     it('does not match specific scope/collection with the same name', function() {
@@ -1162,10 +1077,8 @@ describe('getMutation scope/collection', function() {
             ].map(fakeIndex)
         })];
 
-        expect(mutations)
-            .to.have.length(1);
-        expect(mutations[0])
-            .to.be.instanceOf(CreateIndexMutation);
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(CreateIndexMutation);
     });
 });
 
@@ -1181,7 +1094,7 @@ describe('normalizeNodeList', function() {
             def.normalizeNodeList([]);
 
             expect(def.nodes)
-                .to.be.sorted();
+                .toStrictEqual(['a:8091', 'b:8091', 'c:8091']);
         });
 
         it('adds port numbers', function() {
@@ -1194,7 +1107,7 @@ describe('normalizeNodeList', function() {
             def.normalizeNodeList([]);
 
             expect(def.nodes)
-                .to.be.equalTo(['a:8091', 'b:8091', 'c:8091']);
+                .toStrictEqual(['a:8091', 'b:8091', 'c:8091']);
         });
 
         it('ignores defined port numbers', function() {
@@ -1207,7 +1120,7 @@ describe('normalizeNodeList', function() {
             def.normalizeNodeList([]);
 
             expect(def.nodes)
-                .to.be.equalTo(['a:18091', 'b:8091', 'c:8091']);
+                .toStrictEqual(['a:18091', 'b:8091', 'c:8091']);
         });
     });
 
@@ -1223,7 +1136,7 @@ describe('normalizeNodeList', function() {
             def.normalizeNodeList([]);
 
             expect(def.nodes)
-                .to.be.sorted();
+                .toStrictEqual(['a:8091', 'b:8091', 'c:8091']);
         });
 
         it('adds port numbers', function() {
@@ -1237,7 +1150,7 @@ describe('normalizeNodeList', function() {
             def.normalizeNodeList([]);
 
             expect(def.nodes)
-                .to.be.equalTo(['a:8091', 'b:8091', 'c:8091']);
+                .toStrictEqual(['a:8091', 'b:8091', 'c:8091']);
         });
 
         it('ignores defined port numbers', function() {
@@ -1251,7 +1164,7 @@ describe('normalizeNodeList', function() {
             def.normalizeNodeList([]);
 
             expect(def.nodes)
-                .to.be.equalTo(['a:18091', 'b:8091', 'c:8091']);
+                .toStrictEqual(['a:18091', 'b:8091', 'c:8091']);
         });
 
         it('sorts to match replicas', function() {
@@ -1278,7 +1191,7 @@ describe('normalizeNodeList', function() {
             ].map(fakeIndex));
 
             expect(def.nodes)
-                .to.be.equalTo(['b:8091', 'c:8091', 'a:8091']);
+                .toStrictEqual(['b:8091', 'c:8091', 'a:8091']);
         });
 
         it('missing replicas get remaining nodes', function() {
@@ -1297,7 +1210,7 @@ describe('normalizeNodeList', function() {
             ].map(fakeIndex));
 
             expect(def.nodes)
-                .to.be.equalTo(['b:8091', 'a:8091', 'c:8091']);
+                .toStrictEqual(['b:8091', 'a:8091', 'c:8091']);
         });
 
         it('missing replica in middle gets remaining node', function() {
@@ -1320,7 +1233,7 @@ describe('normalizeNodeList', function() {
             ].map(fakeIndex));
 
             expect(def.nodes)
-                .to.be.equalTo(['b:8091', 'c:8091', 'a:8091']);
+                .toStrictEqual(['b:8091', 'c:8091', 'a:8091']);
         });
     });
 });
@@ -1332,7 +1245,7 @@ describe('normalize', function() {
             is_primary: true,
         });
 
-        const getQueryPlan = stub().returns(Promise.resolve({}));
+        const getQueryPlan = jest.fn().mockResolvedValue({});
 
         const manager: Partial<IndexManager> = {
             bucketName: 'test',
@@ -1341,33 +1254,7 @@ describe('normalize', function() {
 
         await def.normalize(<IndexManager> manager);
 
-        expect(getQueryPlan)
-            .to.not.be.called;
-    });
-
-    it('wraps query errors', async function() {
-        const def = new IndexDefinition({
-            name: 'test',
-            index_key: 'key',
-        });
-
-        const getQueryPlan = stub().returns(Promise.reject(
-            new Error('msg test')));
-
-        const manager: Partial<IndexManager> = {
-            bucketName: 'test',
-            getQueryPlan: getQueryPlan,
-        };
-
-        try {
-            await def.normalize(<IndexManager> manager);
-
-            throw new Error('No exception encountered');
-        } catch (e) {
-            expect(e.message)
-                .to.equal(
-                    `Invalid index definition for ${def.name}: msg test`);
-        }
+        expect(getQueryPlan).not.toBeCalled();
     });
 
     it('replaces keys', async function() {
@@ -1377,22 +1264,20 @@ describe('normalize', function() {
             condition: 'type = \'beer\'',
         });
 
-        const getQueryPlan = stub().returns(Promise.resolve({
-            keys: [
-                {expr: '`key`'},
-            ],
-            where: '`type` = "beer"',
+        const indexManager = jest.fn<Partial<IndexManager>, []>(() => ({
+            bucketName: 'test',
+            getQueryPlan: jest.fn().mockResolvedValue({
+                keys: [
+                    {expr: '`key`'},
+                ],
+                where: '`type` = "beer"',
+            })
         }));
 
-        const manager: Partial<IndexManager> = {
-            bucketName: 'test',
-            getQueryPlan: getQueryPlan,
-        };
-
-        await def.normalize(<IndexManager> manager);
+        await def.normalize(<IndexManager> indexManager());
 
         expect(def.index_key)
-            .to.be.equalTo(['`key`']);
+            .toStrictEqual(['`key`']);
     });
 
     it('handles descending keys', async function() {
@@ -1402,22 +1287,20 @@ describe('normalize', function() {
             condition: 'type = \'beer\'',
         });
 
-        const getQueryPlan = stub().returns(Promise.resolve({
-            keys: [
-                {expr: '`key`', desc: true},
-            ],
-            where: '`type` = "beer"',
+        const indexManager = jest.fn<Partial<IndexManager>, []>(() => ({
+            bucketName: 'test',
+            getQueryPlan: jest.fn().mockResolvedValue({
+                keys: [
+                    {expr: '`key`', desc: true},
+                ],
+                where: '`type` = "beer"',
+            })
         }));
 
-        const manager: Partial<IndexManager> = {
-            bucketName: 'test',
-            getQueryPlan: getQueryPlan,
-        };
-
-        await def.normalize(<IndexManager> manager);
+        await def.normalize(<IndexManager> indexManager());
 
         expect(def.index_key)
-            .to.be.equalTo(['`key` DESC']);
+            .toStrictEqual(['`key` DESC']);
     });
 
     it('replaces condition', async function() {
@@ -1427,22 +1310,19 @@ describe('normalize', function() {
             condition: 'type = \'beer\'',
         });
 
-        const getQueryPlan = stub().returns(Promise.resolve({
-            keys: [
-                {expr: '`key`'},
-            ],
-            where: '`type` = "beer"',
+        const indexManager = jest.fn<Partial<IndexManager>, []>(() => ({
+            bucketName: 'test',
+            getQueryPlan: jest.fn().mockResolvedValue({
+                keys: [
+                    {expr: '`key`'},
+                ],
+                where: '`type` = "beer"'
+            })
         }));
 
-        const manager: Partial<IndexManager> = {
-            bucketName: 'test',
-            getQueryPlan: getQueryPlan,
-        };
+        await def.normalize(<IndexManager> indexManager());
 
-        await def.normalize(<IndexManager> manager);
-
-        expect(def.condition)
-            .to.equal('`type` = "beer"');
+        expect(def.condition).toBe('`type` = "beer"');
     });
 
     it('plan without condition leaves condition as empty string',
@@ -1453,21 +1333,18 @@ describe('normalize', function() {
                 condition: '',
             });
 
-            const getQueryPlan = stub().returns(Promise.resolve({
-                keys: [
-                    {expr: '`key`'},
-                ],
-            }));
-
-            const manager: Partial<IndexManager> = {
+            const indexManager = jest.fn<Partial<IndexManager>, []>(() => ({
                 bucketName: 'test',
-                getQueryPlan: getQueryPlan,
-            };
+                getQueryPlan: jest.fn().mockResolvedValue({
+                    keys: [
+                        {expr: '`key`'},
+                    ],
+                })
+            }));
+    
+            await def.normalize(<IndexManager> indexManager());
 
-            await def.normalize(<IndexManager>manager);
-
-            expect(def.condition)
-                .to.equal('');
+            expect(def.condition).toBe('');
         });
 
         it('replaces partition', async function() {
@@ -1479,28 +1356,24 @@ describe('normalize', function() {
                 },
             });
 
-            const getQueryPlan = stub().returns(Promise.resolve({
-                keys: [
-                    {expr: '`key`'},
-                ],
-                partition: {
-                    exprs: ['test2'],
-                    strategy: 'HASH',
-                },
-            }));
-
-            const manager: Partial<IndexManager> = {
+            const indexManager = jest.fn<Partial<IndexManager>, []>(() => ({
                 bucketName: 'test',
-                getQueryPlan: getQueryPlan,
-            };
+                getQueryPlan: jest.fn().mockResolvedValue({
+                    keys: [
+                        {expr: '`key`'},
+                    ],
+                    partition: {
+                        exprs: ['test2'],
+                        strategy: 'HASH',
+                    },
+                })
+            }));
+    
+            await def.normalize(<IndexManager> indexManager());
 
-            await def.normalize(<IndexManager> manager);
-
-            expect(def.partition)
-                .to.have.property('strategy', 'HASH');
-            expect(def.partition)
-                .to.have.property('exprs')
-                .which.is.equalTo(['test2']);
+            expect(def.partition).toHaveProperty('strategy', 'HASH');
+            expect(def.partition?.exprs)
+                .toStrictEqual(['test2']);
         });
 
         it('plan without partition leaves partition undefined',
@@ -1513,20 +1386,17 @@ describe('normalize', function() {
                     },
                 });
 
-                const getQueryPlan = stub().returns(Promise.resolve({
-                    keys: [
-                        {expr: '`key`'},
-                    ],
-                }));
-
-                const manager: Partial<IndexManager> = {
+                const indexManager = jest.fn<Partial<IndexManager>, []>(() => ({
                     bucketName: 'test',
-                    getQueryPlan: getQueryPlan,
-                };
+                    getQueryPlan: jest.fn().mockResolvedValue({
+                        keys: [
+                            {expr: '`key`'},
+                        ],
+                    })
+                }));
+        
+                await def.normalize(<IndexManager> indexManager());
 
-                await def.normalize(<IndexManager> manager);
-
-                expect(def.partition)
-                    .to.be.undefined;
+                expect(def.partition).toBeUndefined();
             });
 });

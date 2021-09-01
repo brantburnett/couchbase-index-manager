@@ -21,6 +21,7 @@
     "strictNullChecks": true
   },
   "include": [
-    "./app/**/*"
+    "./app/**/*",
+    "node_modules/jest-extended/types/**/*.d.ts"
   ],
 }

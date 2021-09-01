@@ -1,17 +1,10 @@
-import { expect, use } from 'chai';
-import chaiArrays from 'chai-arrays';
-import chaiThings from 'chai-things';
-import { stub } from 'sinon';
-import sinonChai from 'sinon-chai';
 import { ConfigurationType } from '../configuration';
 import { IndexDefinition } from '../definition';
 import { IndexManager } from '../index-manager';
 import { CreateIndexMutation } from './create-index-mutation';
 import { Plan, PlanOptions } from './plan';
 
-use(chaiArrays);
-use(chaiThings);
-use(sinonChai);
+import "jest-extended";
 
 const MockManager = jest.fn<IndexManager, []>(() => ({
     buildDeferredIndexes: jest.fn().mockResolvedValue([]),
@@ -37,23 +30,23 @@ describe('execute', function() {
             name: 'first',
             index_key: 'key',
         }));
-        const firstStub = stub(first, 'execute').returns(Promise.resolve());
+        const firstStub = first.execute = jest.fn().mockImplementation(() => Promise.resolve());
 
         const second = new CreateIndexMutation(new IndexDefinition({
             type: ConfigurationType.Index,
             name: 'second',
             index_key: 'key',
         }));
-        const secondStub = stub(second, 'execute').returns(Promise.resolve());
+        const secondStub = second.execute = jest.fn().mockImplementation(() => Promise.resolve());
 
         const plan = new Plan(new MockManager(), [first, second], planOptions);
 
         await plan.execute();
 
         expect(firstStub)
-            .to.be.calledBefore(secondStub);
+            .toHaveBeenCalledBefore(secondStub);
         expect(secondStub)
-            .to.be.calledOnce;
+            .toHaveBeenCalledTimes(1);
     });
 
     it('groups phases', async function() {
@@ -62,7 +55,7 @@ describe('execute', function() {
             name: 'first',
             index_key: 'key',
         }));
-        const firstStub = stub(first, 'execute').returns(Promise.resolve());
+        const firstStub = first.execute = jest.fn().mockImplementation(() => Promise.resolve());
 
         const second = new CreateIndexMutation(new IndexDefinition({
             type: ConfigurationType.Index,
@@ -70,25 +63,24 @@ describe('execute', function() {
             index_key: 'key',
         }));
         second.phase = 2;
-        const secondStub = stub(second, 'execute').returns(Promise.resolve());
+        const secondStub = second.execute = jest.fn().mockImplementation(() => Promise.resolve());
 
         const third = new CreateIndexMutation(new IndexDefinition({
             type: ConfigurationType.Index,
             name: 'third',
             index_key: 'key',
         }));
-        const thirdStub = stub(third, 'execute').returns(Promise.resolve());
+        const thirdStub = third.execute = jest.fn().mockImplementation(() => Promise.resolve());
 
         const plan = new Plan(new MockManager(), [first, second, third], planOptions);
 
         await plan.execute();
 
         expect(firstStub)
-            .to.be.calledBefore(thirdStub);
+            .toHaveBeenCalledBefore(thirdStub);
         expect(thirdStub)
-            .to.be.calledBefore(secondStub);
-        expect(secondStub)
-            .to.be.calledOnce;
+            .toHaveBeenCalledBefore(secondStub);
+        expect(secondStub).toBeCalledTimes(1);
     });
 
     it('phase failure runs rest of phase', async function() {
@@ -97,14 +89,14 @@ describe('execute', function() {
             name: 'first',
             index_key: 'key',
         }));
-        stub(first, 'execute').throws();
+        first.execute = jest.fn().mockImplementation(() => { throw new Error('Error') });
 
         const second = new CreateIndexMutation(new IndexDefinition({
             type: ConfigurationType.Index,
             name: 'second',
             index_key: 'key',
         }));
-        const secondStub = stub(second, 'execute').returns(Promise.resolve());
+        const secondStub = second.execute = jest.fn().mockImplementation(() => Promise.resolve());
 
         const plan = new Plan(new MockManager(), [first, second], planOptions);
 
@@ -114,8 +106,7 @@ describe('execute', function() {
             // eat errors
         }
 
-        expect(secondStub)
-            .to.be.calledOnce;
+        expect(secondStub).toBeCalledTimes(1);
     });
 
     it('phase failure skips subsequent phases', async function() {
@@ -124,7 +115,7 @@ describe('execute', function() {
             name: 'first',
             index_key: 'key',
         }));
-        stub(first, 'execute').throws();
+        first.execute = jest.fn().mockImplementation(() => { throw new Error('Error') });
 
         const second = new CreateIndexMutation(new IndexDefinition({
             type: ConfigurationType.Index,
@@ -132,7 +123,7 @@ describe('execute', function() {
             index_key: 'key',
         }));
         second.phase = 2;
-        const secondStub = stub(second, 'execute').returns(Promise.resolve());
+        const secondStub = second.execute = jest.fn().mockImplementation(() => Promise.resolve());
 
         const plan = new Plan(new MockManager(), [first, second], planOptions);
 
@@ -142,7 +133,6 @@ describe('execute', function() {
             // eat errors
         }
 
-        expect(secondStub)
-            .to.not.be.called;
+        expect(secondStub).not.toBeCalled();
     });
 });
