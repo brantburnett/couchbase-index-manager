@@ -1,3 +1,6 @@
 module.exports = {
-    rootDir: 'app'
+    rootDir: 'app',
+    setupFilesAfterEnv: [
+        "jest-extended",
+    ]
 };
