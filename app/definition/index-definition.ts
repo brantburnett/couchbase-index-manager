@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { IndexConfiguration, IndexConfigurationBase, IndexValidators, Lifecycle, Partition, PartitionStrategy, PostProcessHandler } from '../configuration';
 import { FeatureVersions, Version } from '../feature-versions';
-import { CouchbaseIndex, DEFAULT_SCOPE, IndexManager, WithClause } from '../index-manager';
+import { CouchbaseIndex, getKeyspace, IndexManager, WithClause } from '../index-manager';
 import { CreateIndexMutation, DropIndexMutation, IndexMutation, MoveIndexMutation, ResizeIndexMutation, UpdateIndexMutation } from '../plan';
 import { ensureEscaped } from '../util';
 import { IndexDefinitionBase } from './index-definition-base';
@@ -397,9 +397,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
 
         indexName = ensureEscaped(indexName || this.name);
 
-        const keyspace = this.scope === DEFAULT_SCOPE
-            ? ensureEscaped(bucketName)
-            : `${ensureEscaped(bucketName)}.${ensureEscaped(this.scope)}.${ensureEscaped(this.collection)}`;
+        const keyspace = getKeyspace(bucketName, this.scope, this.collection);
 
         let statement;
         if (this.is_primary) {

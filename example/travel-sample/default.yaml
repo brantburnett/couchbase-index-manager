@@ -21,3 +21,7 @@ scope: inventory
 collection: route
 index_key:
 - stops
+num_replica: 1
+nodes:
+- node1.cbindexmgr
+- node2.cbindexmgr

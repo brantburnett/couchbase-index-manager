@@ -102,6 +102,14 @@ function isStatusMatch(index: CouchbaseIndex, status: IndexStatus): boolean {
         index.collection === status.collection;
 }
 
+export function getKeyspace(bucket: string, scope = DEFAULT_SCOPE, collection = DEFAULT_COLLECTION): string {
+    if (scope === DEFAULT_SCOPE) {
+        return ensureEscaped(bucket);
+    } else {
+        return `${ensureEscaped(bucket)}.${ensureEscaped(scope)}.${ensureEscaped(collection)}`;
+    }
+}
+
 /**
  * Manages Couchbase indexes
  */
@@ -219,17 +227,31 @@ export class IndexManager {
         await this.cluster.query(statement);
     }
 
+    private getAlterStatement(indexName: string, scope: string, collection: string, withClause: WithClause): string {
+        let statement: string;
+
+        if (scope === DEFAULT_SCOPE) {
+            // We need to use the old syntax for the default collection for backward compatibilty
+            statement = `ALTER INDEX ${ensureEscaped(this.bucketName)}.${ensureEscaped(indexName)} WITH `;
+        } else {
+            statement = `ALTER INDEX ${ensureEscaped(indexName)} ON ${getKeyspace(this.bucketName, scope, collection)} WITH `;
+        }
+
+        statement += JSON.stringify(withClause);
+
+        return statement;
+    }
+
     /**
      * Moves index replicas been nodes
      */
-    async moveIndex(indexName: string, nodes: string[]): Promise<void> {
-        let statement = 'ALTER INDEX ' +
-            `\`${this.bucketName}\`.\`${indexName}\`` +
-            ' WITH ';
-        statement += JSON.stringify({
+    async moveIndex(indexName: string, scope: string, collection: string, nodes: string[]): Promise<void> {
+        const withClause: WithClause = {
             action: 'move',
             nodes: nodes,
-        });
+        };
+
+        const statement = this.getAlterStatement(indexName, scope, collection, withClause);
 
         await this.cluster.query(statement);
     }
@@ -237,11 +259,7 @@ export class IndexManager {
     /**
      * Moves index replicas been nodes
      */
-    async resizeIndex(indexName: string, numReplica: number, nodes?: string[]): Promise<void> {
-        let statement = 'ALTER INDEX ' +
-            `\`${this.bucketName}\`.\`${indexName}\`` +
-            ' WITH ';
-
+    async resizeIndex(indexName: string, scope: string, collection: string, numReplica: number, nodes?: string[]): Promise<void> {
         const withClause: WithClause = {
             action: 'replica_count',
             num_replica: numReplica,
@@ -251,7 +269,7 @@ export class IndexManager {
             withClause.nodes = nodes;
         }
 
-        statement += JSON.stringify(withClause);
+        const statement = this.getAlterStatement(indexName, scope, collection, withClause);
 
         await this.cluster.query(statement);
     }
@@ -324,7 +342,7 @@ export class IndexManager {
             (Date.now() - startTime < effectiveOptions.timeoutMs)) {
             const indexes = (await this.getAllIndexes())
                 .filter(index => index.scope_id === effectiveOptions.scope &&
-                    index.keyspace_id == effectiveOptions.collection && 
+                    index.keyspace_id === effectiveOptions.collection && 
                     index.state !== 'online');
 
             if (indexes.length === 0) {
@@ -352,7 +370,7 @@ export class IndexManager {
         if (scope === DEFAULT_SCOPE && collection === DEFAULT_COLLECTION) {
             await this.manager.dropIndex(this.bucketName, indexName, options);
         } else {
-            const qs = `DROP INDEX ${ensureEscaped(indexName)} ON ${ensureEscaped(this.bucketName)}.${ensureEscaped(scope)}.${ensureEscaped(collection)}`;
+            const qs = `DROP INDEX ${ensureEscaped(indexName)} ON ${getKeyspace(this.bucketName, scope, collection)}`;
 
             // Run our deferred build query
             await this.cluster.query(qs, {
