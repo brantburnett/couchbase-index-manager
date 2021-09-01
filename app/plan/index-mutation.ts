@@ -1,5 +1,5 @@
 import { IndexDefinition } from "../definition";
-import { DEFAULT_COLLECTION, DEFAULT_SCOPE, IndexManager } from "../index-manager";
+import { DEFAULT_SCOPE, IndexManager } from "../index-manager";
 import { Logger } from "../options";
 
 /**
