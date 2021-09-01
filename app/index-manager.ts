@@ -1,4 +1,5 @@
-import { Bucket, Cluster, DropQueryIndexOptions, QueryIndexManager, RequestSpan } from 'couchbase';
+import { Bucket, Cluster, DropQueryIndexOptions, QueryIndexManager } from 'couchbase';
+import { HttpExecutor, HttpMethod, HttpServiceType } from 'couchbase/dist/httpexecutor';
 import { isString } from 'lodash';
 import { PartitionStrategy } from './configuration';
 import { Version } from './feature-versions';
@@ -81,47 +82,11 @@ interface IndexCreatePlanUnnormalized {
     }
 }
 
-// Various helpers for accessing internals of the Couchbase SDK for HTTP requests
-// Ported from the Couchbase SDK
-
-enum HttpServiceType {
-    Management = 'MGMT',
-    Views = 'VIEW',
-    Query = 'QUERY',
-    Search = 'SEARCH',
-    Analytics = 'ANALYTICS',
-}
-
-enum HttpMethod {
-    Get = 'GET',
-    Post = 'POST',
-    Put = 'PUT',
-    Delete = 'DELETE',
-}
-
-interface HttpRequestOptions {
-    type: HttpServiceType;
-    method: HttpMethod;
-    path: string;
-    contentType?: string;
-    body?: string | Buffer;
-    parentSpan?: RequestSpan;
-    timeout?: number;
-}
-
-interface HttpResponse {
-    requestOptions: HttpRequestOptions;
-    statusCode: number;
-    headers: { [key: string]: string };
-    body: Buffer;
-}
-
-interface HttpClient {
-    request: (req: HttpRequestOptions) => Promise<HttpResponse>;
-}
-
+/**
+ * Extended version of the QueryIndexManager which lets us cheat and get to internals.
+ */
 interface QueryIndexManagerInternal extends Omit<QueryIndexManager, "_http"> {
-    get _http(): HttpClient;
+    get _http(): HttpExecutor;
 }
 
 /**
