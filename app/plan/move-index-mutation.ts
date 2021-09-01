@@ -46,7 +46,7 @@ export class MoveIndexMutation extends IndexMutation {
 
     async execute(manager: IndexManager): Promise<void> {
         if (!this.unsupported) {
-            await manager.moveIndex(this.name, this.nodes);
+            await manager.moveIndex(this.name, this.scope, this.collection, this.nodes);
         }
     }
 }
