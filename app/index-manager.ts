@@ -1,4 +1,4 @@
-import { Bucket, Cluster, DropQueryIndexOptions, QueryIndexManager } from 'couchbase';
+import { Bucket, Cluster, DropQueryIndexOptions, QueryIndexManager, RequestSpan } from 'couchbase';
 import { isString } from 'lodash';
 import { PartitionStrategy } from './configuration';
 import { Version } from './feature-versions';
@@ -81,6 +81,49 @@ interface IndexCreatePlanUnnormalized {
     }
 }
 
+// Various helpers for accessing internals of the Couchbase SDK for HTTP requests
+// Ported from the Couchbase SDK
+
+enum HttpServiceType {
+    Management = 'MGMT',
+    Views = 'VIEW',
+    Query = 'QUERY',
+    Search = 'SEARCH',
+    Analytics = 'ANALYTICS',
+}
+
+enum HttpMethod {
+    Get = 'GET',
+    Post = 'POST',
+    Put = 'PUT',
+    Delete = 'DELETE',
+}
+
+interface HttpRequestOptions {
+    type: HttpServiceType;
+    method: HttpMethod;
+    path: string;
+    contentType?: string;
+    body?: string | Buffer;
+    parentSpan?: RequestSpan;
+    timeout?: number;
+}
+
+interface HttpResponse {
+    requestOptions: HttpRequestOptions;
+    statusCode: number;
+    headers: { [key: string]: string };
+    body: Buffer;
+}
+
+interface HttpClient {
+    request: (req: HttpRequestOptions) => Promise<HttpResponse>;
+}
+
+interface QueryIndexManagerInternal extends Omit<QueryIndexManager, "_http"> {
+    get _http(): HttpClient;
+}
+
 /**
  * Subset of fields returned on a query plan for CREATE INDEX
  */
@@ -136,7 +179,7 @@ export function getKeyspace(bucket: string, scope = DEFAULT_SCOPE, collection = 
  * Manages Couchbase indexes
  */
 export class IndexManager {
-    private manager: QueryIndexManager;
+    private manager: QueryIndexManagerInternal;
 
     /**
      * @param {Bucket} bucket
@@ -145,7 +188,7 @@ export class IndexManager {
     constructor(private bucket: Bucket, private cluster: Cluster) {
         this.bucket = bucket;
         this.cluster = cluster;
-        this.manager = cluster.queryIndexes();
+        this.manager = cluster.queryIndexes() as unknown as QueryIndexManagerInternal;
     }
 
     /**
@@ -175,9 +218,9 @@ export class IndexManager {
      * Gets index statuses for the bucket via the cluster manager
      */
     private async getIndexStatuses(): Promise<IndexStatusNormalized[]> {
-        const resp = await (this.manager as any)._http.request({
-            type: 'MGMT',
-            method: 'GET',
+        const resp = await this.manager._http.request({
+            type: HttpServiceType.Management,
+            method: HttpMethod.Get,
             path: '/indexStatus',
             timeout: 5000,
         });
@@ -187,7 +230,7 @@ export class IndexManager {
         if (resp.statusCode !== 200) {
             if (!body) {
                 throw new Error(
-                    'operation failed (' + resp.statusCode +')');
+                    `operation failed (${resp.statusCode})`);
             }
 
             throw new Error(body.reason);
@@ -406,9 +449,9 @@ export class IndexManager {
      * Gets the version of the cluster
      */
     async getClusterVersion(): Promise<Version> {
-        const resp = await (this.manager as any)._http.request({
-            type: 'MGMT',
-            method: 'GET',
+        const resp = await this.manager._http.request({
+            type: HttpServiceType.Management,
+            method: HttpMethod.Get,
             path: '/pools/default',
             timeout: 5000,
         });
@@ -423,7 +466,7 @@ export class IndexManager {
 
             if (!errData) {
                 throw new Error(
-                    'operation failed (' + resp.statusCode +')');
+                    `operation failed (${resp.statusCode})`);
             }
 
             throw new Error(errData.reason);
