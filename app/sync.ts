@@ -1,9 +1,7 @@
 import chalk from 'chalk';
 import { prompt } from 'inquirer';
 import { compact, extend, flatten, isArrayLike } from 'lodash';
-import { PartitionStrategy } from './configuration';
 import { DefinitionLoader } from './definition';
-import { FeatureVersions } from './feature-versions';
 import { IndexManager } from './index-manager';
 import { SyncOptions } from './options';
 import { Plan } from './plan';
@@ -75,25 +73,8 @@ export class Sync {
             clusterVersion: await this.manager.getClusterVersion(),
         };
 
-        if (!FeatureVersions.autoReplicas(mutationContext.clusterVersion)) {
-            // Force all definitions to use manual replica management
-            definitions.forEach((def) => {
-                def.manual_replica = true;
-            });
-        }
-
         // Normalize the definitions before testing for mutations
         for (const def of definitions) {
-            if (def.partition) {
-                const strategy = def.partition.strategy || PartitionStrategy.Hash;
-
-                if (!FeatureVersions.partitionBy(
-                    mutationContext.clusterVersion, strategy)) {
-                    throw new Error(
-                        `Partition strategy '${strategy}' is not supported`);
-                }
-            }
-
             await def.normalize(this.manager);
         }
 
