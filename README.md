@@ -15,8 +15,8 @@ It also provides an API which may be used by importing a node module.
 
 ## Detailed Documentation
 
-(couchbase-index-manager programatic package)[./packages/couchbase-index-manager]
-(couchbase-index-manager-cli command-line interface)[./packages/couchbase-index-manager-cli]
+- [couchbase-index-manager programmatic package](./packages/couchbase-index-manager)
+- [couchbase-index-manager-cli command-line interface](./packages/couchbase-index-manager-cli)
 
 ## Installing the CLI
 
