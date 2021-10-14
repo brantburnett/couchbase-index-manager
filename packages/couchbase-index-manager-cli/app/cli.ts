@@ -1,9 +1,10 @@
 import { Command, program } from 'commander';
 import chalk from 'chalk';
-import { ConnectionInfo, ConnectionManager } from './connection-manager';
-import { Sync } from './sync';
-import { Validator } from './validator';
-import { SyncOptions } from './options';
+import { ConnectionInfo, ConnectionManager } from 'couchbase-index-manager';
+import { Sync } from 'couchbase-index-manager';
+import { Validator } from 'couchbase-index-manager';
+import { SyncOptions } from 'couchbase-index-manager';
+import { prompt } from 'inquirer';
 
 // We use require since this file is above our TS base path
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -25,6 +26,19 @@ function handleAsync(promise: Promise<any>): void {
 
         process.exitCode = 1;
     });
+}
+
+/**
+ * Presents a confirmation prompt before executing the plan
+*/
+async function confirmSync(promptText: string): Promise<boolean> {
+    const answers = await prompt({
+        name: 'confirm',
+        type: 'confirm',
+        message: promptText,
+    });
+
+    return !!answers.confirm;
 }
 
 export function run(): void {
@@ -110,7 +124,7 @@ export function run(): void {
 
             const options: SyncOptions = {
                 interactive: true,
-                confirmationPrompt: !cmd.force,
+                confirmSync: !cmd.force ? confirmSync : () => Promise.resolve(true),
                 dryRun: cmd.dryRun,
                 safe: cmd.safe,
                 buildTimeout: parseInt(cmd.buildTimeout, 10) * 1000,

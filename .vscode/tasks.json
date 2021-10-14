@@ -6,7 +6,7 @@
     {
       "label": "build",
       "type": "typescript",
-      "tsconfig": "tsconfig.json",
+      "tsconfig": "packages/couchbase-index-manager/tsconfig.json",
       "problemMatcher": [
         "$tsc"
       ],

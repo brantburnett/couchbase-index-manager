@@ -8,4 +8,4 @@ node_modules/
 /env
 
 # We can exclude because Dockerfile does the compile
-/dist
+dist/

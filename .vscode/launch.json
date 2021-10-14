@@ -8,7 +8,7 @@
             "type": "node",
             "request": "launch",
             "name": "Sync",
-            "program": "${workspaceFolder}/bin/couchbase-index-manager",
+            "program": "${workspaceFolder}/packages/couchbase-index-manager-cli/bin/couchbase-index-manager",
             "runtimeArgs": [
                 "--nolazy"
             ],
@@ -35,7 +35,7 @@
             "type": "node",
             "request": "launch",
             "name": "Validate",
-            "program": "${workspaceFolder}/bin/couchbase-index-manager",
+            "program": "${workspaceFolder}/packages/couchbase-index-manager-cli/bin/couchbase-index-manager",
             "runtimeArgs": [
                 "--nolazy"
             ],
