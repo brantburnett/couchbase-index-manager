@@ -1,11 +1,12 @@
 FROM node:16 as build
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+COPY ["package*.json", "lerna.json"]
+COPY ["packages/couchbase-index-manager/package*.json", "./packages/couchbase-index-manager/"]
+COPY ["packages/couchbase-index-manager-cli/package*.json", "./packages/couchbase-index-manager-cli/"]
+RUN npm ci
 COPY ./ ./
-RUN npm run-script lint && \
-    npm run-script build
+RUN npm run build
 
 FROM node:16
 LABEL maintainer=bburnett@centeredgesoftware.com
