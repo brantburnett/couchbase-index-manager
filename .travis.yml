@@ -7,8 +7,9 @@ services:
 before_script:
 - scripts/set_version.sh
 script:
-- npm run-script lint
-- npm run-script build
+- npm install
+- npm run lint
+- npm run build
 - npm test
 - docker build -t btburnett3/couchbase-index-manager:${TRAVIS_BUILD_NUMBER} .
 deploy:
