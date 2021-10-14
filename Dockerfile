@@ -1,7 +1,7 @@
 FROM node:16 as build
 
 WORKDIR /app
-COPY ["package*.json", "lerna.json"]
+COPY ["package*.json", "lerna.json", "./"]
 COPY ["packages/couchbase-index-manager/package*.json", "./packages/couchbase-index-manager/"]
 COPY ["packages/couchbase-index-manager-cli/package*.json", "./packages/couchbase-index-manager-cli/"]
 RUN npm ci
