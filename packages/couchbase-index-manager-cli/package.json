@@ -1,6 +1,6 @@
 {
   "name": "couchbase-index-manager-cli",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "description": "Manage Couchbase indexes during the CI/CD process",
   "scripts": {
     "build": "tsc",

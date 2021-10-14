@@ -7,6 +7,7 @@
     "bootstrap": "lerna bootstrap",
     "build": "lerna run build --stream",
     "exec": "npm --prefix ./packages/couchbase-index-manager-cli run exec --",
+    "lerna": "lerna",
     "lint": "lerna run lint --stream && markdownlint -i node_modules ./**/*.md",
     "postinstall": "npm run bootstrap",
     "test": "lerna run test --stream --",
