@@ -21,7 +21,7 @@ deploy:
     tags: true
 - provider: script
   skip_cleanup: true
-  script: npm run lerna -- publish from-package --yes
+  script: git reset --hard && npm run lerna -- publish ${TRAVIS_TAG} --temp-tag --yes
   on:
     tags: true
 cache:
