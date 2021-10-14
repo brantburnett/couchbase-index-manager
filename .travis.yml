@@ -1,28 +1,27 @@
 sudo: required
 language: node_js
 node_js:
-- "14"
+- "16"
 services:
 - docker
 before_script:
 - scripts/set_version.sh
 script:
-- npm install
-- npm run lint
 - npm run build
+- npm run lint
 - npm test
 - docker build -t btburnett3/couchbase-index-manager:${TRAVIS_BUILD_NUMBER} .
+before_deploy:
+- echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" >> $HOME/.npmrc 2> /dev/null
 deploy:
 - provider: script
   skip_cleanup: true
   script: scripts/docker_push.sh
   on:
     tags: true
-- provider: npm
+- provider: script
   skip_cleanup: true
-  email: bburnett@centeredgesoftware.com
-  api_key:
-    secure: "WopYMyU4vSyX+KqmIAkAFOBdSs5hqggi40YLDW/OgoDPr/hgNWgaexn8lE233GhpCXTo5v0tvoKGPAUjgDbo27ASj6nClbxJhknxGvvdeusb1Xr4bZ6CX1QkSnAXJ1xMOXVCnS12EkYNoKENCjeQl4K4Bjmybgz7AUPuR6jdk2CfZO5L46Pe+m3tq+u/w3sNz6rjO7DY3DXQ74STX0VI7UpRT01+Z9tXzS8kIWVRhO5zpVxrIwQAeFH4u2aLtlclSvLX7eYGxi+Zk8oO2Hsrbv9FwHCgTVPYafvvplWJEt/zTSi+bpZQ2gIKuBCbp4/MiKuBj7HI1tIuFzXAyPqnR+vQzmX+UuSim5F37jGPTKWkibVKHoRaX4asgOm+Hvc9JZeHSalvvnID3HyHapw4etIr0Rb4ZGG/+GKvoIAh94b5Yv9Hap3aRDFT4ggTTTFr+fijlV0jSaesh7mVvRx4UPKab8ubpPYWn71ZtQEhXbQQ/5MP+JRyxNPn/pTzsw4jja0SrLCBJX92hHWcHgkjgz5Dtowsw3vlc5sdHcAJ2eedAGS0lIWbxB6riT0D53D+kU6odkjc4deY84IgaifdrHFiZYe5B2dGrlXSgkBFseCjpQi74RcCIXHbI9/S28wogz5VJuwoIqhGkE7Q1Pklzq8q/i4kgl7tCHJfFsKgT/w="
+  script: npm run lerna -- publish from-package --no-tag-git-version --yes
   on:
     tags: true
 cache:

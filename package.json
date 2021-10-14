@@ -2,6 +2,10 @@
   "name": "couchbase-index-manager",
   "version": "0.1.0",
   "description": "Manage Couchbase indexes during the CI/CD process",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brantburnett/couchbase-index-manager.git"
+  },
   "scripts": {
     "audit": "lerna-audit",
     "bootstrap": "lerna bootstrap",
