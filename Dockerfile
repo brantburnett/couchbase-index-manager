@@ -13,5 +13,5 @@ LABEL maintainer=bburnett@centeredgesoftware.com
 WORKDIR /app
 COPY --from=build /app ./
 
-RUN ["ln", "-s", "/app/bin/couchbase-index-manager", "/bin/couchbase-index-manager"]
-ENTRYPOINT ["/app/bin/couchbase-index-manager"]
+RUN ["ln", "-s", "/app/packages/couchbase-index-manager-cli/bin/couchbase-index-manager", "/bin/couchbase-index-manager"]
+ENTRYPOINT ["/bin/couchbase-index-manager"]
