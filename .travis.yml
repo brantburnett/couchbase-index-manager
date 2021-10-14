@@ -21,7 +21,12 @@ deploy:
     tags: true
 - provider: script
   skip_cleanup: true
-  script: git reset --hard && npm run lerna -- publish ${TRAVIS_TAG} --temp-tag --yes
+  script: npm --prefix packages/couchbase-index-manager publish
+  on:
+    tags: true
+- provider: script
+  skip_cleanup: true
+  script: npm --prefix packages/couchbase-index-manager-cli publish
   on:
     tags: true
 cache:
