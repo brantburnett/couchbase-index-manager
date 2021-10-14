@@ -7,4 +7,6 @@ export { DropIndexMutation } from './plan/drop-index-mutation';
 export { MoveIndexMutation } from './plan/move-index-mutation';
 export { UpdateIndexMutation } from './plan/update-index-mutation';
 export { IndexManager } from './index-manager';
-export { SyncOptions, ValidateOptions, Logger } from './options';
+export { Validator } from './validator';
+export { ConfirmSyncCallback, SyncOptions, ValidateOptions, Logger } from './options';
+export { ConnectionInfo, ConnectionManager } from './connection-manager';

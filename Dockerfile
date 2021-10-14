@@ -1,17 +1,17 @@
-FROM node:14 as build
+FROM node:16 as build
 
-RUN npm install -g npm@7.19.1
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+COPY ["package*.json", "lerna.json", "./"]
+COPY ["packages/couchbase-index-manager/package*.json", "./packages/couchbase-index-manager/"]
+COPY ["packages/couchbase-index-manager-cli/package*.json", "./packages/couchbase-index-manager-cli/"]
+RUN npm ci
 COPY ./ ./
-RUN npm run-script lint && \
-    npm run-script build
+RUN npm run build
 
-FROM node:14
+FROM node:16
 LABEL maintainer=bburnett@centeredgesoftware.com
 WORKDIR /app
 COPY --from=build /app ./
 
-RUN ["ln", "-s", "/app/bin/couchbase-index-manager", "/bin/couchbase-index-manager"]
-ENTRYPOINT ["/app/bin/couchbase-index-manager"]
+RUN ["ln", "-s", "/app/packages/couchbase-index-manager-cli/bin/couchbase-index-manager", "/bin/couchbase-index-manager"]
+ENTRYPOINT ["/bin/couchbase-index-manager"]

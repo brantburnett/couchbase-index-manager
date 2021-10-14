@@ -2,69 +2,26 @@
   "name": "couchbase-index-manager",
   "version": "0.1.0",
   "description": "Manage Couchbase indexes during the CI/CD process",
-  "main": "dist/index.js",
-  "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
-    "lint": "eslint ./ && markdownlint -i node_modules ./**/*.md",
-    "test": "jest",
-    "test.watch": "jest --watch",
-    "exec": "./bin/couchbase-index-manager -c couchbase://node1.cbindexmgr,node2.cbindexmgr,node3.cbindexmgr -u Administrator -p password"
-  },
-  "bin": {
-    "couchbase-index-manager": "bin/couchbase-index-manager"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/brantburnett/couchbase-index-manager.git"
   },
+  "scripts": {
+    "audit": "lerna-audit",
+    "bootstrap": "lerna bootstrap",
+    "build": "lerna run build --stream",
+    "exec": "npm --prefix ./packages/couchbase-index-manager-cli run exec --",
+    "lerna": "lerna",
+    "lint": "lerna run lint --stream && markdownlint -i node_modules ./**/*.md",
+    "postinstall": "npm run bootstrap",
+    "test": "lerna run test --stream --",
+    "watch": "lerna run watch --stream --parallel"
+  },
   "author": "Brant Burnett <btburnett3@gmail.com> (http://www.btburnett.com)",
   "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/brantburnett/couchbase-index-manager/issues"
-  },
-  "homepage": "https://github.com/brantburnett/couchbase-index-manager#readme",
-  "engines": {
-    "node": ">=10"
-  },
-  "keywords": [
-    "index",
-    "n1ql",
-    "couchbase",
-    "ci",
-    "cd",
-    "continuous"
-  ],
   "devDependencies": {
-    "@babel/core": "^7.15.0",
-    "@babel/preset-env": "^7.15.0",
-    "@babel/preset-typescript": "^7.15.0",
-    "@types/debug": "^4.1.7",
-    "@types/inquirer": "^7.3.3",
-    "@types/jest": "^27.0.2",
-    "@types/js-yaml": "^4.0.3",
-    "@types/lodash": "^4.14.172",
-    "@types/node": "^16.7.2",
-    "@typescript-eslint/eslint-plugin": "^4.30.0",
-    "@typescript-eslint/parser": "^4.30.0",
-    "babel-jest": "^27.2.5",
-    "eslint": "^7.32.0",
-    "eslint-plugin-jest": "^24.4.0",
-    "eslint-plugin-node": "^11.1.0",
-    "jest": "^27.2.5",
-    "jest-extended": "^1.0.0",
-    "markdownlint-cli": "^0.16.0",
-    "source-map-support": "^0.5.19",
-    "typescript": "^4.4.2"
-  },
-  "dependencies": {
-    "chalk": "^2.3.1",
-    "commander": "^8.1.0",
-    "couchbase": "^3.2.0",
-    "inquirer": "^8.1.2",
-    "js-yaml": "^4.1.0",
-    "lodash": "^4.17.15",
-    "source-map-support": "^0.5.19",
-    "tslib": "^2.3.1"
+    "lerna": "^4.0.0",
+    "lerna-audit": "^1.3.3",
+    "markdownlint-cli": "^0.16.0"
   }
 }

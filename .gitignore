@@ -58,5 +58,5 @@ typings/
 .next
 
 # Distribution dir
-/dist
+dist/
 /testbin

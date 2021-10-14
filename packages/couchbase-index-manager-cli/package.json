@@ -1,0 +1,59 @@
+{
+  "name": "couchbase-index-manager-cli",
+  "version": "2.0.0",
+  "description": "Manage Couchbase indexes during the CI/CD process",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint": "eslint ./",
+    "exec": "./bin/couchbase-index-manager -c couchbase://node1.cbindexmgr,node2.cbindexmgr,node3.cbindexmgr -u Administrator -p password"
+  },
+  "bin": {
+    "couchbase-index-manager": "bin/couchbase-index-manager"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brantburnett/couchbase-index-manager.git",
+    "directory": "packages/couchbase-index-manager-cli"
+  },
+  "author": "Brant Burnett <btburnett3@gmail.com> (http://www.btburnett.com)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/brantburnett/couchbase-index-manager/issues"
+  },
+  "homepage": "https://github.com/brantburnett/couchbase-index-manager#readme",
+  "engines": {
+    "node": ">=10"
+  },
+  "keywords": [
+    "index",
+    "n1ql",
+    "couchbase",
+    "ci",
+    "cd",
+    "continuous"
+  ],
+  "devDependencies": {
+    "@babel/core": "^7.15.0",
+    "@babel/preset-env": "^7.15.0",
+    "@babel/preset-typescript": "^7.15.0",
+    "@types/debug": "^4.1.7",
+    "@types/inquirer": "^7.3.3",
+    "@types/js-yaml": "^4.0.3",
+    "@types/lodash": "^4.14.172",
+    "@types/node": "^16.7.2",
+    "@typescript-eslint/eslint-plugin": "^4.30.0",
+    "@typescript-eslint/parser": "^4.30.0",
+    "eslint": "^7.32.0",
+    "eslint-plugin-node": "^11.1.0",
+    "typescript": "^4.4.2"
+  },
+  "dependencies": {
+    "chalk": "^2.3.1",
+    "commander": "^8.1.0",
+    "couchbase-index-manager": "2.0.0",
+    "inquirer": "^8.1.2",
+    "source-map-support": "^0.5.19",
+    "tslib": "^2.3.1"
+  }
+}

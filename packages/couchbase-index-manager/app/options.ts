@@ -1,6 +1,12 @@
+
+/**
+ * Callback which returns true if the sync should continue.
+ */
+export type ConfirmSyncCallback = (prompt: string) => Promise<boolean>;
+
 export interface SyncOptions {
     interactive: boolean;
-    confirmationPrompt: boolean;
+    confirmSync: ConfirmSyncCallback;
     dryRun: boolean;
     safe: boolean;
     buildTimeout: number;

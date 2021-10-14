@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import { prompt } from 'inquirer';
 import { compact, extend, flatten, isArrayLike } from 'lodash';
 import { DefinitionLoader } from './definition';
 import { IndexManager } from './index-manager';
@@ -37,8 +36,8 @@ export class Sync {
 
         if (options.dryRun || plan.isEmpty()) {
             return;
-        } else if (options.interactive && options.confirmationPrompt) {
-            if (!(await this.confirm())) {
+        } else if (options.interactive && options.confirmSync) {
+            if (!(await options.confirmSync('Execute index sync plan?'))) {
                 options.logger?.info(
                     chalk.yellowBright('Cancelling due to user input...'));
                 return;
@@ -87,18 +86,5 @@ export class Sync {
         }
 
         return new Plan(this.manager, mutations, this.options);
-    }
-
-    /**
-     * Presents a confirmation prompt before executing the plan
-    */
-    private async confirm(): Promise<boolean> {
-        const answers = await prompt({
-            name: 'confirm',
-            type: 'confirm',
-            message: 'Execute index sync plan?',
-        });
-
-        return !!answers.confirm;
     }
 }
