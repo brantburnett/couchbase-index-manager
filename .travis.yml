@@ -21,7 +21,7 @@ deploy:
     tags: true
 - provider: script
   skip_cleanup: true
-  script: npm run lerna -- publish from-package --no-tag-git-version --yes
+  script: npm run lerna -- publish from-package --yes
   on:
     tags: true
 cache:
