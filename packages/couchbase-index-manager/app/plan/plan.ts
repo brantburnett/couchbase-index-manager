@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { padStart, flatten } from 'lodash';
-import { DEFAULT_SCOPE, IndexManager, WaitForIndexBuildOptions } from '../index-manager';
+import { DEFAULT_COLLECTION, DEFAULT_SCOPE, IndexManager, WaitForIndexBuildOptions } from '../index-manager';
 import { IndexMutation } from './index-mutation';
 import { Logger } from '../options';
 
@@ -172,7 +172,7 @@ export class Plan {
 
         // Build each collection separately
         for (const collection of collections) {
-            if (collection.scope === DEFAULT_SCOPE) {
+            if (collection.scope === DEFAULT_SCOPE && collection.collection === DEFAULT_COLLECTION) {
                 this.options.logger.info(chalk.greenBright('Building indexes...'));
             } else {
                 this.options.logger.info(chalk.greenBright(`Building indexes on ${collection.scope}.${collection.collection}...`));

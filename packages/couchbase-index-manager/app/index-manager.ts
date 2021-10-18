@@ -133,7 +133,7 @@ function isStatusMatch(index: CouchbaseIndex, status: IndexStatus): boolean {
 }
 
 export function getKeyspace(bucket: string, scope = DEFAULT_SCOPE, collection = DEFAULT_COLLECTION): string {
-    if (scope === DEFAULT_SCOPE) {
+    if (scope === DEFAULT_SCOPE && collection === DEFAULT_COLLECTION) {
         return ensureEscaped(bucket);
     } else {
         return `${ensureEscaped(bucket)}.${ensureEscaped(scope)}.${ensureEscaped(collection)}`;
@@ -260,7 +260,7 @@ export class IndexManager {
     private getAlterStatement(indexName: string, scope: string, collection: string, withClause: WithClause): string {
         let statement: string;
 
-        if (scope === DEFAULT_SCOPE) {
+        if (scope === DEFAULT_SCOPE && collection === DEFAULT_COLLECTION) {
             // We need to use the old syntax for the default collection for backward compatibilty
             statement = `ALTER INDEX ${ensureEscaped(this.bucketName)}.${ensureEscaped(indexName)} WITH `;
         } else {
