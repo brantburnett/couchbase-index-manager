@@ -254,7 +254,7 @@ export class IndexManager {
      * Creates an index based on an index definition
      */
     async createIndex(statement: string): Promise<void> {
-        await this.cluster.query(statement);
+        await this.cluster.query(statement, {adhoc: true});
     }
 
     private getAlterStatement(indexName: string, scope: string, collection: string, withClause: WithClause): string {
@@ -283,7 +283,7 @@ export class IndexManager {
 
         const statement = this.getAlterStatement(indexName, scope, collection, withClause);
 
-        await this.cluster.query(statement);
+        await this.cluster.query(statement, {adhoc: true});
     }
 
     /**
@@ -300,8 +300,8 @@ export class IndexManager {
         }
 
         const statement = this.getAlterStatement(indexName, scope, collection, withClause);
-
-        await this.cluster.query(statement);
+        console.log(statement);
+        await this.cluster.query(statement, {adhoc: true});
     }
 
     /**
@@ -404,7 +404,8 @@ export class IndexManager {
 
             // Run our deferred build query
             await this.cluster.query(qs, {
-                timeout: options?.timeout
+                timeout: options?.timeout,
+                adhoc: true
             });
         }
     }
