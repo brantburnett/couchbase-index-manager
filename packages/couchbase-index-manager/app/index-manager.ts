@@ -404,7 +404,6 @@ export class IndexManager {
 
             // Run our deferred build query
             await this.cluster.query(qs, {
-                parentSpan: options?.parentSpan,
                 timeout: options?.timeout
             });
         }
@@ -467,7 +466,7 @@ export class IndexManager {
     async getQueryPlan(statement: string): Promise<IndexCreatePlan> {
         statement = 'EXPLAIN ' + statement;
 
-        const explain = (await this.cluster.query(statement)) as {
+        const explain = (await this.cluster.query(statement, { adhoc: true })) as {
             rows: {
                 plan: IndexCreatePlanUnnormalized
             }[]

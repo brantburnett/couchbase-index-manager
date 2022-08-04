@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/brantburnett/couchbase-index-manager#readme",
   "engines": {
-    "node": ">=10"
+    "node": ">=12"
   },
   "keywords": [
     "index",

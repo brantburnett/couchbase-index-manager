@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/brantburnett/couchbase-index-manager#readme",
   "engines": {
-    "node": ">=10"
+    "node": ">=12"
   },
   "keywords": [
     "index",
@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "chalk": "^2.3.1",
-    "couchbase": "^3.2.0",
+    "couchbase": "^4.1.1",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.15",
     "tslib": "^2.3.1"
