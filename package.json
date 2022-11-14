@@ -20,7 +20,7 @@
   "author": "Brant Burnett <btburnett3@gmail.com> (http://www.btburnett.com)",
   "license": "Apache-2.0",
   "devDependencies": {
-    "lerna": "^4.0.0",
+    "lerna": "^6.0.3",
     "lerna-audit": "^1.3.3",
     "markdownlint-cli": "^0.32.2"
   }
