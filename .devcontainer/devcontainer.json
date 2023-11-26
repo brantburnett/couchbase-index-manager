@@ -6,16 +6,19 @@
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
 
-  // Set *default* container specific settings.json values on container create.
-  "settings": {},
-
-
-  // Add the IDs of extensions you want installed when the container is created.
-  "extensions": [
-    "dbaeumer.vscode-eslint",
-    "orta.vscode-jest",
-    "github.vscode-pull-request-github"
-  ],
+  "customizations": {
+    "vscode": {
+      // Set *default* container specific settings.json values on container create.
+      "settings": {},
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "orta.vscode-jest",
+        "github.vscode-pull-request-github",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [
@@ -23,7 +26,7 @@
   ],
 
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "npm install && npm lerna bootstrap"
 
   // Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
   // "remoteUser": "node"

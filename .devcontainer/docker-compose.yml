@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
       args:
         # Update 'VARIANT' to pick a Node version: 12, 14, 16
-        VARIANT: 16
+        VARIANT: 20-bullseye
         USER_UID: 1000
         USER_GID: 1000
 
@@ -37,15 +37,16 @@ services:
       if [ ! -e "/initialized" ] ; then
         while true; do
           sleep 3;
-          /opt/couchbase/bin/couchbase-cli node-init -c node1.cbindexmgr:8091 \
-            -u Administrator -p password \
+          /opt/couchbase/bin/couchbase-cli node-init -c node1.cbindexmgr:8091 \\
+            -u Administrator -p password \\
             --node-init-hostname=node1.cbindexmgr &&
           sleep 1 &&
-          /opt/couchbase/bin/couchbase-cli cluster-init \
-            -u Administrator -p password \
-            --cluster-username Administrator --cluster-password password \
-            --cluster-ramsize 512 --cluster-index-ramsize 256 \
-            --services data,index,query && break
+          /opt/couchbase/bin/couchbase-cli cluster-init \\
+            -u Administrator -p password \\
+            --cluster-username Administrator --cluster-password password \\
+            --cluster-ramsize 512 --cluster-index-ramsize 256 \\
+            --services data,index,query && 
+          break
         done;
         echo "Initialized" > /initialized;
       fi;
@@ -61,9 +62,10 @@ services:
       if [ ! -e "/initialized" ] ; then
         while true; do
           sleep 3;
-          /opt/couchbase/bin/couchbase-cli node-init -c node2.cbindexmgr:8091 \
-            -u Administrator -p password \
-            --node-init-hostname=node2.cbindexmgr && break
+          /opt/couchbase/bin/couchbase-cli node-init -c node2.cbindexmgr:8091 \\
+            -u Administrator -p password \\
+            --node-init-hostname=node2.cbindexmgr && 
+          break
         done;
         echo "Initialized" > /initialized;
       fi;
@@ -79,9 +81,10 @@ services:
       if [ ! -e "/initialized" ] ; then
         while true; do
           sleep 3;
-          /opt/couchbase/bin/couchbase-cli node-init -c node3.cbindexmgr:8091 \
-            -u Administrator -p password \
-            --node-init-hostname=node3.cbindexmgr && break
+          /opt/couchbase/bin/couchbase-cli node-init -c node3.cbindexmgr:8091 \\
+            -u Administrator -p password \\
+            --node-init-hostname=node3.cbindexmgr && 
+          break
         done;
         echo "Initialized" > /initialized;
       fi;
@@ -98,31 +101,36 @@ services:
       if [ ! -e "/initialized" ] ; then
         while true; do
           sleep 3;
-          ./couchbase-cli server-add -c node1.cbindexmgr -u Administrator -p password \
-            --server-add node2.cbindexmgr \
-            --server-add-username Administrator --server-add-password password \
-            --services data,index,query && break
+          ./couchbase-cli server-add -c node1.cbindexmgr -u Administrator -p password \\
+            --server-add node2.cbindexmgr \\
+            --server-add-username Administrator --server-add-password password \\
+            --services data,index,query &&
+            break
         done;
         while true; do
           sleep 3;
-          ./couchbase-cli server-add -c node1.cbindexmgr -u Administrator -p password \
-            --server-add node3.cbindexmgr \
-            --server-add-username Administrator --server-add-password password \
-            --services data,index,query && break
+          ./couchbase-cli server-add -c node1.cbindexmgr -u Administrator -p password \\
+            --server-add node3.cbindexmgr \\
+            --server-add-username Administrator --server-add-password password \\
+            --services data,index,query &&
+            break
         done;
         while true; do
           sleep 3;
-          ./couchbase-cli rebalance -c node1.cbindexmgr \
-            -u Administrator -p password && break
+          ./couchbase-cli rebalance -c node1.cbindexmgr \\
+            -u Administrator -p password &&
+          break
         done;
         while true; do
-          ./cbdocloader -n node1.cbindexmgr -u Administrator -p password \
-            -b beer-sample -s 100 -d /opt/couchbase/samples/beer-sample.zip && break;
+          ./cbdocloader -n node1.cbindexmgr -u Administrator -p password \\
+            -b beer-sample -s 100 -d /opt/couchbase/samples/beer-sample.zip &&
+          break;
           sleep 3;
         done;
         while true; do
-          ./cbdocloader -n node1.cbindexmgr -u Administrator -p password \
-            -b travel-sample -s 100 -d /opt/couchbase/samples/travel-sample.zip && break;
+          ./cbdocloader -n node1.cbindexmgr -u Administrator -p password \\
+            -b travel-sample -s 100 -d /opt/couchbase/samples/travel-sample.zip &&
+          break;
           sleep 3;
         done;
         echo "Initialized" > /initialized;
