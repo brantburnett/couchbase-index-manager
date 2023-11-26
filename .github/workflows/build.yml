@@ -24,10 +24,6 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
-            packages/couchbase-index-manager/package-lock.json
-            packages/couchbase-index-manager-cli/package-lock.json
       - name: Restore
         run: npm install
 
