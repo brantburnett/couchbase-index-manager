@@ -50,7 +50,7 @@ const keys: KeyProcessorSet = {
     index_key: (val: any) => !val ? [] :
         _.isString(val) ?
             _.compact([val]) :
-            Array.from(val),
+            Array.from(val as Iterable<string>),
     condition: (val: any) => val as string ?? '',
     partition: function(this: IndexDefinition, val: any) {
         // For overrides, ignore undefined

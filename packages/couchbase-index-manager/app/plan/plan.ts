@@ -120,7 +120,7 @@ export class Plan {
                     await phase[i].execute(
                         this.manager, this.options.logger);
                 } catch (e) {
-                    this.options.logger.error(chalk.redBright(e));
+                    this.options.logger.error(chalk.redBright(`${e}`));
                     errorCount++;
                 }
             }

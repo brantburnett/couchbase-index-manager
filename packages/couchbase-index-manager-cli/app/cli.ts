@@ -22,7 +22,7 @@ function parseBaseOptions(cmd: Command): { cluster: string, username: string, pa
 
 function handleAsync(promise: Promise<any>): void {
     promise.catch((err) => {
-        console.error(chalk.redBright(err.stack));
+        console.error(chalk.redBright(`${err.stack}`));
 
         process.exitCode = 1;
     });
