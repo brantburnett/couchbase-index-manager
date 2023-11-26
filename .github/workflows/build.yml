@@ -28,6 +28,8 @@ jobs:
             package-lock.json
             packages/couchbase-index-manager/package-lock.json
             packages/couchbase-index-manager-cli/package-lock.json
+      - name: Restore
+        run: npm install && npm run bootstrap
       - name: Build
         run: npm run build
       - name: Lint
