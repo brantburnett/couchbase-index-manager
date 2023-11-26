@@ -26,7 +26,7 @@ function validateConfiguration<T>(validatorSet: ValidatorSet<T>, configuration: 
             }
         } catch (e) {
             throw new Error(
-                `${e} in ${(configuration as any).name || 'unk'}.${key}`);
+                `${e} in ${(configuration as any).name || 'unk'}.${new String(key)}`);
         }
     }
 

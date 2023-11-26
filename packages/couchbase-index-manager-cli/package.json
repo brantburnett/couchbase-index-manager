@@ -38,7 +38,7 @@
     "@babel/preset-env": "^7.15.0",
     "@babel/preset-typescript": "^7.15.0",
     "@types/debug": "^4.1.7",
-    "@types/inquirer": "^7.3.3",
+    "@types/inquirer": "^9.0.7",
     "@types/js-yaml": "^4.0.3",
     "@types/lodash": "^4.14.172",
     "@types/node": "^16.7.2",

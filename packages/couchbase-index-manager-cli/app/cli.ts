@@ -4,7 +4,7 @@ import { ConnectionInfo, ConnectionManager } from 'couchbase-index-manager';
 import { Sync } from 'couchbase-index-manager';
 import { Validator } from 'couchbase-index-manager';
 import { SyncOptions } from 'couchbase-index-manager';
-import { prompt } from 'inquirer';
+import inquirer from 'inquirer';
 
 // We use require since this file is above our TS base path
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -32,7 +32,7 @@ function handleAsync(promise: Promise<any>): void {
  * Presents a confirmation prompt before executing the plan
 */
 async function confirmSync(promptText: string): Promise<boolean> {
-    const answers = await prompt({
+    const answers = await inquirer.prompt({
         name: 'confirm',
         type: 'confirm',
         message: promptText,
