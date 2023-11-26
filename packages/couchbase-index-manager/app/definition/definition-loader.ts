@@ -26,7 +26,7 @@ function validateConfiguration<T>(validatorSet: ValidatorSet<T>, configuration: 
             }
         } catch (e) {
             throw new Error(
-                `${e} in ${(configuration as any).name || 'unk'}.${key}`);
+                `${e} in ${(configuration as any).name || 'unk'}.${new String(key)}`);
         }
     }
 
@@ -107,7 +107,7 @@ export class DefinitionLoader {
         const contents = await readFile(filename, 'utf8');
 
         if (ext === '.json') {
-            handler(JSON.parse(contents));
+            handler(JSON.parse(contents) as ConfigurationItem);
         } else if (ext === '.yaml' || ext === '.yml') {
             yaml.loadAll(contents, handler as (doc: unknown) => void);
         }
@@ -124,14 +124,14 @@ export class DefinitionLoader {
 
             let data = '';
             process.stdin.on('data', (chunk) => {
-                data += chunk;
+                data += chunk.toString();
             });
 
             process.stdin.on('end', () => {
                 try {
                     if (/^\s*{/.exec(data)) {
                         // Appears to be JSON
-                        handler(JSON.parse(data));
+                        handler(JSON.parse(data) as ConfigurationItem);
                     } else {
                         // Assume it's YAML
                         yaml.loadAll(data, handler as (doc: unknown) => void);

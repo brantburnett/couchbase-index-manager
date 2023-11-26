@@ -198,7 +198,7 @@ export class IndexManager {
                     `operation failed (${resp.statusCode})`);
             }
 
-            throw new Error(body.reason);
+            throw new Error(body.reason as string);
         }
 
         const indexStatuses = (body.indexes as IndexStatus[])
@@ -434,7 +434,7 @@ export class IndexManager {
                     `operation failed (${resp.statusCode})`);
             }
 
-            throw new Error(errData.reason);
+            throw new Error(errData.reason as string);
         }
 
         const poolData = JSON.parse(resp.body.toString()) as {
