@@ -6,22 +6,24 @@
     "type": "git",
     "url": "git+https://github.com/brantburnett/couchbase-index-manager.git"
   },
+  "workspaces": [
+    "packages/couchbase-index-manager",
+    "packages/couchbase-index-manager-cli"
+  ],
   "scripts": {
     "audit": "lerna-audit",
-    "bootstrap": "lerna bootstrap",
     "build": "lerna run build --stream",
     "exec": "npm --prefix ./packages/couchbase-index-manager-cli run exec --",
     "lerna": "lerna",
     "lint": "lerna run lint --stream && markdownlint -i node_modules ./**/*.md",
-    "postinstall": "npm run bootstrap",
     "test": "lerna run test --stream --",
     "watch": "lerna run watch --stream --parallel"
   },
   "author": "Brant Burnett <btburnett3@gmail.com> (http://www.btburnett.com)",
   "license": "Apache-2.0",
   "devDependencies": {
-    "lerna": "^6.0.3",
+    "lerna": "^8.0.0",
     "lerna-audit": "^1.3.3",
-    "markdownlint-cli": "^0.32.2"
+    "markdownlint-cli": "^0.37.0"
   }
 }
