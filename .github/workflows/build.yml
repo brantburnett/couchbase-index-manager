@@ -68,3 +68,17 @@ jobs:
           pushd packages/couchbase-index-manager-cli && npm publish && popd
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Pack NPM
+        if: ${{!startsWith(github.ref, 'refs/tags/')}} # Only on non-tags
+        run: |
+          pushd packages/couchbase-index-manager && npm pack && popd &&
+          pushd packages/couchbase-index-manager-cli && npm pack && popd
+      - name: Archive
+        if: ${{!startsWith(github.ref, 'refs/tags/')}} # Only on non-tags
+        uses: actions/upload-artifact@v3
+        with:
+          name: npm-packages
+          path: |
+            packages/couchbase-index-manager/*.tgz
+            packages/couchbase-index-manager-cli/*.tgz
