@@ -83,13 +83,6 @@ interface IndexCreatePlanUnnormalized {
 }
 
 /**
- * Extended version of the QueryIndexManager which lets us cheat and get to internals.
- */
-interface QueryIndexManagerInternal extends Omit<QueryIndexManager, "_http"> {
-    get _http(): HttpExecutor;
-}
-
-/**
  * Subset of fields returned on a query plan for CREATE INDEX
  */
 export interface IndexCreatePlan extends IndexCreatePlanUnnormalized {
@@ -144,7 +137,7 @@ export function getKeyspace(bucket: string, scope = DEFAULT_SCOPE, collection = 
  * Manages Couchbase indexes
  */
 export class IndexManager {
-    private manager: QueryIndexManagerInternal;
+    private manager: QueryIndexManager;
 
     /**
      * @param {Bucket} bucket
@@ -153,7 +146,7 @@ export class IndexManager {
     constructor(private bucket: Bucket, private cluster: Cluster) {
         this.bucket = bucket;
         this.cluster = cluster;
-        this.manager = cluster.queryIndexes() as unknown as QueryIndexManagerInternal;
+        this.manager = cluster.queryIndexes();
     }
 
     /**
@@ -183,7 +176,9 @@ export class IndexManager {
      * Gets index statuses for the bucket via the cluster manager
      */
     private async getIndexStatuses(): Promise<IndexStatusNormalized[]> {
-        const resp = await this.manager._http.request({
+        const httpExecutor = new HttpExecutor(this.cluster.conn);
+
+        const resp = await httpExecutor.request({
             type: HttpServiceType.Management,
             method: HttpMethod.Get,
             path: '/indexStatus',
@@ -414,7 +409,9 @@ export class IndexManager {
      * Gets the version of the cluster
      */
     async getClusterVersion(): Promise<Version> {
-        const resp = await this.manager._http.request({
+        const httpExecutor = new HttpExecutor(this.cluster.conn)
+
+        const resp = await httpExecutor.request({
             type: HttpServiceType.Management,
             method: HttpMethod.Get,
             path: '/pools/default',
