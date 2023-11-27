@@ -34,7 +34,9 @@
     "continuous"
   ],
   "files": [
-    "dist/**"
+    "bin/**",
+    "dist/**/*.ts",
+    "dist/**/*.js"
   ],
   "devDependencies": {
     "@babel/core": "^7.15.0",

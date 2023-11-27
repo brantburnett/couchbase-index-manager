@@ -32,6 +32,10 @@
     "cd",
     "continuous"
   ],
+  "files": [
+    "dist/**/*.ts",
+    "dist/**/*.js"
+  ],
   "devDependencies": {
     "@babel/core": "^7.15.0",
     "@babel/preset-env": "^7.15.0",

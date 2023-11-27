@@ -17,3 +17,4 @@ Dockerfile
 /env
 .env
 /.devcontainer
+global.d.ts
