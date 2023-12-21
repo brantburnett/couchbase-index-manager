@@ -143,7 +143,7 @@ export class IndexManager {
      * @param {Bucket} bucket
      * @param {Cluster} cluster
      */
-    constructor(private bucket: Bucket, private cluster: Cluster) {
+    constructor(private bucket: Bucket, private cluster: Cluster, readonly isSecure: boolean = false) {
         this.bucket = bucket;
         this.cluster = cluster;
         this.manager = cluster.queryIndexes();
@@ -295,7 +295,6 @@ export class IndexManager {
         }
 
         const statement = this.getAlterStatement(indexName, scope, collection, withClause);
-        console.log(statement);
         await this.cluster.query(statement, {adhoc: true});
     }
 

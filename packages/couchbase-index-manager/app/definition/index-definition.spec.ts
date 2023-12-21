@@ -513,6 +513,7 @@ describe('getMutation partition change', function() {
                     nodes: ['a:8091'],
                 }),
             ],
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(0);
@@ -538,6 +539,7 @@ describe('getMutation partition change', function() {
                     nodes: ['a:8091'],
                 },
             ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(0);
@@ -562,6 +564,7 @@ describe('getMutation partition change', function() {
                     nodes: ['a:8091'],
                 },
             ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(0);
@@ -585,6 +588,7 @@ describe('getMutation partition change', function() {
                     nodes: ['a:8091'],
                 },
             ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(1);
@@ -611,6 +615,7 @@ describe('getMutation partition change', function() {
                     nodes: ['a:8091'],
                 },
             ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(1);
@@ -632,6 +637,7 @@ describe('getMutation partition change', function() {
                     nodes: ['a:8091'],
                 },
             ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(1);
@@ -655,6 +661,7 @@ describe('getMutation partition change', function() {
                     nodes: ['a:8091'],
                 },
             ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(1);
@@ -684,6 +691,7 @@ describe('getMutation manual replica node changes', function() {
                     nodes: ['c:8091'],
                 },
             ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(1);
@@ -716,6 +724,7 @@ describe('getMutation manual replica node changes', function() {
                     nodes: ['a:8091'],
                 },
             ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(0);
@@ -737,6 +746,7 @@ describe('getMutation manual replica node changes', function() {
                     nodes: ['d:8091'],
                 },
             ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(3);
@@ -776,6 +786,7 @@ describe('getMutation automatic replica node changes', function() {
                     num_replica: 1,
                 },
             ].map(fakeIndex),
+            isSecure: false,
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -806,6 +817,7 @@ describe('getMutation automatic replica node changes', function() {
                     num_replica: 1,
                 },
             ].map(fakeIndex),
+            isSecure: false,
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -831,6 +843,7 @@ describe('getMutation automatic replica node changes', function() {
                     num_replica: 1,
                 },
             ].map(fakeIndex),
+            isSecure: false,
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -862,6 +875,7 @@ describe('getMutation automatic replica node changes', function() {
                     num_replica: 0,
                 },
             ].map(fakeIndex),
+            isSecure: false,
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -893,6 +907,7 @@ describe('getMutation automatic replica node changes', function() {
                     num_replica: 1,
                 },
             ].map(fakeIndex),
+            isSecure: false,
             clusterVersion: {
                 major: 6,
                 minor: 5,
@@ -924,6 +939,7 @@ describe('getMutation automatic replica node changes', function() {
                     num_replica: 0,
                 },
             ].map(fakeIndex),
+            isSecure: false,
             clusterVersion: {
                 major: 6,
                 minor: 5,
@@ -959,6 +975,7 @@ describe('getMutation automatic replica node changes', function() {
                     partition: 'HASH(`type`)',
                 },
             ].map(fakeIndex),
+            isSecure: false,
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -990,6 +1007,7 @@ describe('getMutation automatic replica node changes', function() {
                     num_replica: 1,
                 },
             ].map(fakeIndex),
+            isSecure: false,
             clusterVersion: {
                 major: 5,
                 minor: 5,
@@ -1021,6 +1039,7 @@ describe('getMutation automatic replica node changes', function() {
                     num_replica: 1,
                 },
             ].map(fakeIndex),
+            isSecure: false,
             clusterVersion: {
                 major: 6,
                 minor: 5,
@@ -1052,7 +1071,8 @@ describe('getMutation scope/collection', function() {
                     index_key: ['`key`'],
                     nodes: ['a:8091']
                 },
-            ].map(fakeIndex)
+            ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(0);
@@ -1074,7 +1094,8 @@ describe('getMutation scope/collection', function() {
                     index_key: ['`key`'],
                     nodes: ['a:8091']
                 },
-            ].map(fakeIndex)
+            ].map(fakeIndex),
+            isSecure: false,
         })];
 
         expect(mutations).toHaveLength(1);
@@ -1091,7 +1112,10 @@ describe('normalizeNodeList', function() {
                 nodes: ['b', 'c', 'a'],
             });
 
-            def.normalizeNodeList([]);
+            def.normalizeNodeList({
+                currentIndexes: [],
+                isSecure: false,
+            });
 
             expect(def.nodes)
                 .toStrictEqual(['a:8091', 'b:8091', 'c:8091']);
@@ -1104,10 +1128,29 @@ describe('normalizeNodeList', function() {
                 nodes: ['a', 'b', 'c'],
             });
 
-            def.normalizeNodeList([]);
+            def.normalizeNodeList({
+                currentIndexes: [],
+                isSecure: false,
+            });
 
             expect(def.nodes)
                 .toStrictEqual(['a:8091', 'b:8091', 'c:8091']);
+        });
+
+        it('adds secure port numbers', function() {
+            const def = new IndexDefinition({
+                name: 'test',
+                index_key: 'key',
+                nodes: ['a', 'b', 'c'],
+            });
+
+            def.normalizeNodeList({
+                currentIndexes: [],
+                isSecure: true,
+            });
+
+            expect(def.nodes)
+                .toStrictEqual(['a:18091', 'b:18091', 'c:18091']);
         });
 
         it('ignores defined port numbers', function() {
@@ -1117,7 +1160,10 @@ describe('normalizeNodeList', function() {
                 nodes: ['a:18091', 'b', 'c'],
             });
 
-            def.normalizeNodeList([]);
+            def.normalizeNodeList({
+                currentIndexes: [],
+                isSecure: false,
+            });
 
             expect(def.nodes)
                 .toStrictEqual(['a:18091', 'b:8091', 'c:8091']);
@@ -1133,7 +1179,10 @@ describe('normalizeNodeList', function() {
                 nodes: ['b', 'c', 'a'],
             });
 
-            def.normalizeNodeList([]);
+            def.normalizeNodeList({
+                currentIndexes: [],
+                isSecure: false,
+            });
 
             expect(def.nodes)
                 .toStrictEqual(['a:8091', 'b:8091', 'c:8091']);
@@ -1147,7 +1196,10 @@ describe('normalizeNodeList', function() {
                 nodes: ['a', 'b', 'c'],
             });
 
-            def.normalizeNodeList([]);
+            def.normalizeNodeList({
+                currentIndexes: [],
+                isSecure: false,
+            });
 
             expect(def.nodes)
                 .toStrictEqual(['a:8091', 'b:8091', 'c:8091']);
@@ -1161,7 +1213,10 @@ describe('normalizeNodeList', function() {
                 nodes: ['a:18091', 'b', 'c'],
             });
 
-            def.normalizeNodeList([]);
+            def.normalizeNodeList({
+                currentIndexes: [],
+                isSecure: false,
+            });
 
             expect(def.nodes)
                 .toStrictEqual(['a:18091', 'b:8091', 'c:8091']);
@@ -1175,20 +1230,23 @@ describe('normalizeNodeList', function() {
                 nodes: ['a', 'b', 'c'],
             });
 
-            def.normalizeNodeList([
-                {
-                    name: 'test',
-                    nodes: ['b:8091'],
-                },
-                {
-                    name: 'test_replica1',
-                    nodes: ['c:8091'],
-                },
-                {
-                    name: 'test_replica2',
-                    nodes: ['a:8091'],
-                },
-            ].map(fakeIndex));
+            def.normalizeNodeList({
+                currentIndexes: [
+                    {
+                        name: 'test',
+                        nodes: ['b:8091'],
+                    },
+                    {
+                        name: 'test_replica1',
+                        nodes: ['c:8091'],
+                    },
+                    {
+                        name: 'test_replica2',
+                        nodes: ['a:8091'],
+                    },
+                ].map(fakeIndex),
+                isSecure: false,
+            });
 
             expect(def.nodes)
                 .toStrictEqual(['b:8091', 'c:8091', 'a:8091']);
@@ -1202,12 +1260,15 @@ describe('normalizeNodeList', function() {
                 nodes: ['a', 'b', 'c'],
             });
 
-            def.normalizeNodeList([
-                {
-                    name: 'test',
-                    nodes: ['b:8091'],
-                },
-            ].map(fakeIndex));
+            def.normalizeNodeList({
+                currentIndexes: [
+                    {
+                        name: 'test',
+                        nodes: ['b:8091'],
+                    },
+                ].map(fakeIndex),
+                isSecure: false,
+            });
 
             expect(def.nodes)
                 .toStrictEqual(['b:8091', 'a:8091', 'c:8091']);
@@ -1221,16 +1282,19 @@ describe('normalizeNodeList', function() {
                 nodes: ['a', 'b', 'c'],
             });
 
-            def.normalizeNodeList([
-                {
-                    name: 'test',
-                    nodes: ['b:8091'],
-                },
-                {
-                    name: 'test_replica2',
-                    nodes: ['a:8091'],
-                },
-            ].map(fakeIndex));
+            def.normalizeNodeList({ 
+                    currentIndexes: [
+                    {
+                        name: 'test',
+                        nodes: ['b:8091'],
+                    },
+                    {
+                        name: 'test_replica2',
+                        nodes: ['a:8091'],
+                    },
+                ].map(fakeIndex),
+                isSecure: false,
+            });
 
             expect(def.nodes)
                 .toStrictEqual(['b:8091', 'c:8091', 'a:8091']);
