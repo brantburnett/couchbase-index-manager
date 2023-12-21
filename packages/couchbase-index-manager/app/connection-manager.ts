@@ -44,7 +44,7 @@ export class ConnectionManager {
 
         this.bucket = this.cluster.bucket(this.connectionInfo.bucketName);
 
-        return new IndexManager(this.bucket, this.cluster);
+        return new IndexManager(this.bucket, this.cluster, this.connectionInfo.cluster.startsWith("couchbases://"));
     }
 
     /**

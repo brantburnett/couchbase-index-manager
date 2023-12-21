@@ -70,6 +70,7 @@ export class Sync {
         const mutationContext = {
             currentIndexes: await this.manager.getIndexes(),
             clusterVersion: await this.manager.getClusterVersion(),
+            isSecure: this.manager.isSecure,
         };
 
         // Normalize the definitions before testing for mutations

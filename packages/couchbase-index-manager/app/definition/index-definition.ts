@@ -9,16 +9,17 @@ import { IndexDefinitionBase } from './index-definition-base';
 export interface MutationContext {
     currentIndexes: CouchbaseIndex[];
     clusterVersion?: Version;
+    isSecure?: boolean;
 }
 
 /**
  * Ensures that a server name has a port number appended, defaults to 8091
  */
-function ensurePort(server: string): string {
+function ensurePort(server: string, isSecure?: boolean): string {
     if (/:\d+$/.exec(server)) {
         return server;
     } else {
-        return server + ':8091';
+        return server + (isSecure ? ':18091' : ':8091');
     }
 }
 
@@ -170,7 +171,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
      * Gets the required index mutations, if any, to sync this definition
      */
     * getMutations(context: MutationContext): Iterable<IndexMutation> {
-        this.normalizeNodeList(context.currentIndexes);
+        this.normalizeNodeList(context);
 
         const mutations = [];
 
@@ -210,13 +211,13 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
             // Index isn't found
             if (!drop) {
                 yield new CreateIndexMutation(this, this.name + suffix,
-                    this.getWithClause(replicaNum));
+                    this.getWithClause(context, replicaNum));
             }
         } else if (drop) {
             yield new DropIndexMutation(this, currentIndex.name);
         } else if (!this.is_primary && this.requiresUpdate(currentIndex)) {
             yield new UpdateIndexMutation(this, this.name + suffix,
-                this.getWithClause(replicaNum),
+                this.getWithClause(context, replicaNum),
                 currentIndex);
         } else if (!this.manual_replica &&
             !_.isUndefined(currentIndex.num_replica) &&
@@ -228,7 +229,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
                 yield new ResizeIndexMutation(this, this.name + suffix);
             } else {
                 yield new UpdateIndexMutation(this, this.name + suffix,
-                    this.getWithClause(replicaNum),
+                    this.getWithClause(context, replicaNum),
                     currentIndex);
             }
         } else if (this.nodes && currentIndex.nodes) {
@@ -238,7 +239,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
             if (this.manual_replica) {
                 if (this.nodes[replicaNum] !== currentIndex.nodes[0]) {
                     yield new UpdateIndexMutation(this, this.name + suffix,
-                        this.getWithClause(replicaNum),
+                        this.getWithClause(context, replicaNum),
                         currentIndex);
                 }
             } else {
@@ -249,17 +250,17 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
         }
     }
 
-    private getWithClause(replicaNum?: number): WithClause {
+    private getWithClause(context: MutationContext, replicaNum?: number): WithClause {
         let withClause: WithClause;
 
         if (!this.manual_replica) {
             withClause = {
-                nodes: this.nodes ? this.nodes.map(ensurePort) : undefined,
+                nodes: this.nodes ? this.nodes.map(p => ensurePort(p, context.isSecure)) : undefined,
                 num_replica: this.num_replica,
             };
         } else {
             withClause = {
-                nodes: this.nodes && [ensurePort(this.nodes[replicaNum ?? 0])],
+                nodes: this.nodes && [ensurePort(this.nodes[replicaNum ?? 0], context.isSecure)],
             };
         }
 
@@ -461,12 +462,12 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
      * order as the current indexes.  This allows easy matching of existing
      * node assignments, reducing reindex load due to minor node shifts.
      */
-    normalizeNodeList(currentIndexes: CouchbaseIndex[]): void {
+    normalizeNodeList(context: MutationContext): void {
         if (!this.nodes) {
             return;
         }
 
-        this.nodes = this.nodes.map(ensurePort);
+        this.nodes = this.nodes.map(p => ensurePort(p, context.isSecure));
         this.nodes.sort();
 
         if (this.manual_replica) {
@@ -481,7 +482,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
                     '' :
                     `_replica${replicaNum}`;
 
-                    const index = currentIndexes.find((index) => {
+                    const index = context.currentIndexes.find((index) => {
                     return this.isMatch(index, suffix);
                 });
 
