@@ -63,7 +63,7 @@ export class UpdateIndexMutation extends IndexMutation {
                     `     -> ${this.definition.condition || 'none'}`));
         }
 
-        const hasReplica = Math.max(this.definition.num_replica,
+        const hasReplica = Math.max(this.definition.num_replica ?? 0,
                                     this.existingIndex.num_replica) > 0;
         if (!this.definition.manual_replica && hasReplica) {
             logger.info(
@@ -110,6 +110,6 @@ export class UpdateIndexMutation extends IndexMutation {
         // Safe if there are multiple replicas
         // As each update will run in its own phase
         return this.definition.manual_replica &&
-            this.definition.num_replica > 0;
+            (this.definition.num_replica ?? 0) > 0;
     }
 }

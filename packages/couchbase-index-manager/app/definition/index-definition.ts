@@ -83,8 +83,12 @@ const keys: KeyProcessorSet = {
     },
     manual_replica: (val: any) => !!val,
     num_replica: function(this: IndexDefinition, val: any) {
+        if (_.isUndefined(val)) {
+            return val;
+        }
+
         if (!this.partition) {
-            return val as number ?? (this.nodes ? this.nodes.length-1 : undefined);
+            return val as number ?? (this.nodes ? this.nodes.length-1 : 0);
         } else {
             // for partitioned index, num_replica and nodes
             // are decoupled so skip nodes check
@@ -478,8 +482,9 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
 
             const newNodeList: string[] = [];
             const unused = _.clone(this.nodes);
+            const num_replica = this.num_replica ?? 0; // Default to 0 if undefined
 
-            for (let replicaNum=0; replicaNum<=this.num_replica; replicaNum++) {
+            for (let replicaNum=0; replicaNum<=num_replica; replicaNum++) {
                 const suffix = !replicaNum ?
                     '' :
                     `_replica${replicaNum}`;
@@ -500,7 +505,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
             }
 
             // Fill in the remaining nodes that didn't have a match
-            for (let replicaNum=0; replicaNum<=this.num_replica; replicaNum++) {
+            for (let replicaNum=0; replicaNum<=num_replica; replicaNum++) {
                 if (!newNodeList[replicaNum]) {
                     const nextUnused = unused.shift();
                     if (!nextUnused) {
