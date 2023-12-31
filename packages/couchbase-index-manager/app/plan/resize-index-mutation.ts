@@ -29,6 +29,6 @@ export class ResizeIndexMutation extends IndexMutation {
     }
 
     async execute(manager: IndexManager): Promise<void> {
-        await manager.resizeIndex(this.name, this.scope, this.collection, this.definition.num_replica, this.definition.nodes);
+        await manager.resizeIndex(this.name, this.scope, this.collection, this.definition.num_replica ?? 0, this.definition.nodes);
     }
 }

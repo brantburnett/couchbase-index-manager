@@ -83,12 +83,16 @@ const keys: KeyProcessorSet = {
     },
     manual_replica: (val: any) => !!val,
     num_replica: function(this: IndexDefinition, val: any) {
+        if (_.isUndefined(val)) {
+            return val;
+        }
+
         if (!this.partition) {
             return val as number ?? (this.nodes ? this.nodes.length-1 : 0);
         } else {
             // for partitioned index, num_replica and nodes
             // are decoupled so skip nodes check
-            return val as number ?? 0;
+            return val as number;
         }
     },
     retain_deleted_xattr: (val: any) => !!val,
@@ -128,7 +132,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
     condition?: string;
     partition?: Partition;
     manual_replica: boolean;
-    num_replica: number;
+    num_replica?: number;
     nodes?: string[];
     retain_deleted_xattr: boolean;
     lifecycle?: Lifecycle;
@@ -178,13 +182,14 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
         if (!this.manual_replica) {
             mutations.push(...this.getMutation(context));
         } else {
-            for (let i=0; i<=this.num_replica; i++) {
+            const num_replica = this.num_replica ?? 0; // Default to 0 if undefined
+            for (let i=0; i<=num_replica; i++) {
                 mutations.push(...this.getMutation(context, i));
             }
 
             if (!this.is_primary) {
                 // Handle dropping replicas if the count is lowered
-                for (let i=this.num_replica+1; i<=10; i++) {
+                for (let i=num_replica+1; i<=10; i++) {
                     mutations.push(...this.getMutation(
                         context, i, true));
                 }
@@ -220,6 +225,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
                 this.getWithClause(context, replicaNum),
                 currentIndex);
         } else if (!this.manual_replica &&
+            !_.isUndefined(this.num_replica) && 
             !_.isUndefined(currentIndex.num_replica) &&
             this.num_replica !== currentIndex.num_replica) {
             // Number of replicas changed for an auto replica index
@@ -257,7 +263,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
             withClause = {
                 nodes: this.nodes ? this.nodes.map(p => ensurePort(p, context.isSecure)) : undefined,
                 num_replica: this.num_replica,
-            };
+                };
         } else {
             withClause = {
                 nodes: this.nodes && [ensurePort(this.nodes[replicaNum ?? 0], context.isSecure)],
@@ -476,8 +482,9 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
 
             const newNodeList: string[] = [];
             const unused = _.clone(this.nodes);
+            const num_replica = this.num_replica ?? 0; // Default to 0 if undefined
 
-            for (let replicaNum=0; replicaNum<=this.num_replica; replicaNum++) {
+            for (let replicaNum=0; replicaNum<=num_replica; replicaNum++) {
                 const suffix = !replicaNum ?
                     '' :
                     `_replica${replicaNum}`;
@@ -498,7 +505,7 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
             }
 
             // Fill in the remaining nodes that didn't have a match
-            for (let replicaNum=0; replicaNum<=this.num_replica; replicaNum++) {
+            for (let replicaNum=0; replicaNum<=num_replica; replicaNum++) {
                 if (!newNodeList[replicaNum]) {
                     const nextUnused = unused.shift();
                     if (!nextUnused) {

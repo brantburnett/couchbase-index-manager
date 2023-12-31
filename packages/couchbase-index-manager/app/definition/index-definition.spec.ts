@@ -62,7 +62,7 @@ describe('ctor', function() {
             name: 'test',
             is_primary: true,
             index_key: ['key'],
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('primary key with condition throws error', function() {
@@ -70,21 +70,21 @@ describe('ctor', function() {
             name: 'test',
             is_primary: true,
             condition: '(`type` = "predicate")',
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('secondary index without index_key throws error', function() {
         expect(() => new IndexDefinition({
             name: 'test',
             index_key: undefined,
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('secondary index with empty index_key throws error', function() {
         expect(() => new IndexDefinition({
             name: 'test',
             index_key: [],
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('manual replica with partition throws error', function() {
@@ -95,7 +95,7 @@ describe('ctor', function() {
             partition: {
                 exprs: ['type'],
             },
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('node list sets num_replica', function() {
@@ -118,13 +118,13 @@ describe('ctor', function() {
         expect(def.num_replica).toBe(2);
     });
 
-    it('no num_replica is 0', function() {
+    it('no num_replica is undefined', function() {
         const def = new IndexDefinition({
             name: 'test',
             index_key: 'key',
         });
 
-        expect(def.num_replica).toBe(0);
+        expect(def.num_replica).toBeUndefined();
     });
 
     it('no manual_replica is false', function() {
@@ -245,7 +245,7 @@ describe('applyOverride', function() {
         expect(() => def.applyOverride({
             name: 'test',
             index_key: ['key'],
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('primary key with condition throws error', function() {
@@ -257,14 +257,14 @@ describe('applyOverride', function() {
         expect(() => def.applyOverride({
             name: 'test',
             condition: '(`type` = "predicate")',
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('secondary index without index_key throws error', function() {
         expect(() => new IndexDefinition({
             name: 'test',
             index_key: undefined,
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('secondary index with empty index_key throws error', function() {
@@ -276,7 +276,7 @@ describe('applyOverride', function() {
         expect(() => def.applyOverride({
             name: 'test',
             index_key: [],
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('manual replica with partition throws error', function() {
@@ -290,7 +290,7 @@ describe('applyOverride', function() {
             partition: {
                 exprs: ['type'],
             },
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('node list sets num_replica', function() {
@@ -319,6 +319,17 @@ describe('applyOverride', function() {
         expect(def.num_replica).toBe(2);
     });
 
+    it('no node list keeps num_replica undefined', function() {
+        const def = new IndexDefinition({
+            name: 'test',
+            index_key: 'key',
+        });
+
+        def.applyOverride({});
+
+        expect(def.num_replica).toBeUndefined();
+    });
+
     it('nodes and num_replica mismatch throws', function() {
         const def = new IndexDefinition({
             name: 'test',
@@ -328,7 +339,7 @@ describe('applyOverride', function() {
         expect(() => def.applyOverride({
             nodes: ['a'],
             num_replica: 2,
-        })).toThrowError();
+        })).toThrow();
     });
 
     it('partitioned nodes and num_replica mismatch succeeds', function() {
@@ -767,6 +778,71 @@ describe('getMutation manual replica node changes', function() {
                 });
         }
     });
+});
+
+describe('getMutation automatic num_replica', function() {
+    it('undefined should not send', function() {
+        const def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`'
+        });
+
+        const mutations = [...def.getMutations({
+            currentIndexes: [],
+            isSecure: false,
+        })];
+
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(CreateIndexMutation)
+
+        const mutation = mutations[0] as CreateIndexMutation;
+        expect(mutation.withClause.num_replica).toBeUndefined();
+    });
+
+    it('defined should send', function() {
+        const def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`',
+            num_replica: 0,
+        });
+
+        const mutations = [...def.getMutations({
+            currentIndexes: [],
+            isSecure: false,
+        })];
+
+        expect(mutations).toHaveLength(1);
+        expect(mutations[0]).toBeInstanceOf(CreateIndexMutation)
+
+        const mutation = mutations[0] as CreateIndexMutation;
+        expect(mutation.withClause.num_replica).toBe(0);
+    });
+
+    it('undefined should not cause an index update', function() {
+        const def = new IndexDefinition({
+            name: 'test',
+            index_key: '`key`'
+        });
+
+        const mutations = [...def.getMutations({
+            currentIndexes: [
+                {
+                    name: 'test',
+                    index_key: ['`key`'],
+                    nodes: ['a:8091', 'b:8091', 'c:8091'],
+                    num_replica: 2,
+                },
+            ].map(fakeIndex),
+            isSecure: false,
+            clusterVersion: {
+                major: 5,
+                minor: 5,
+            },
+        })];
+
+        expect(mutations).toHaveLength(0);
+    });
+
 });
 
 describe('getMutation automatic replica node changes', function() {
