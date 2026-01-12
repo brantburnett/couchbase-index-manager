@@ -10,16 +10,20 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Get version
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
@@ -50,6 +54,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: btburnett3/couchbase-index-manager
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}},prefix=
+            type=semver,pattern={{major}}.{{minor}},prefix=
       - name: Docker Build
         uses: docker/build-push-action@v6
         with:
