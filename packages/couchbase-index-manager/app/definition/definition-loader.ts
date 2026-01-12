@@ -79,7 +79,7 @@ export class DefinitionLoader {
                 } else {
                     files.push(filePath);
                 }
-            } catch (e) {
+            } catch {
                 throw new Error('Path not found');
             }
         }

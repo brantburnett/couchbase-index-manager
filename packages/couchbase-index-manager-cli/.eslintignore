@@ -1,6 +1,0 @@
-node_modules
-dist
-testbin
-.eslintrc.js
-jest.config.js
-babel.config.js

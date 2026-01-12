@@ -7,7 +7,7 @@ import { SyncOptions } from 'couchbase-index-manager';
 import inquirer from 'inquirer';
 
 // We use require since this file is above our TS base path
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const pkg: { version: string } = require('./../package.json');
 
 import 'source-map-support/register';
@@ -77,7 +77,6 @@ export function run(): void {
             const bucketName = cmd.validateSyntax as string;
             if (bucketName) {
                 const connectionInfo: ConnectionInfo = {
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     ...parseBaseOptions(validateCommand.parent!),
                     bucketName: bucketName,
                 };
@@ -117,7 +116,6 @@ export function run(): void {
         )
         .action(async (bucketName: string, path: string, cmd: { buildTimeout: string, force: boolean, dryRun: boolean, safe: boolean }) => {
             const connectionInfo: ConnectionInfo = {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 ...parseBaseOptions(syncCommand.parent!),
                 bucketName,
             };
@@ -130,7 +128,6 @@ export function run(): void {
                 buildTimeout: parseInt(cmd.buildTimeout, 10) * 1000,
             };
 
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             if (syncCommand.parent!.getOptionValue('quiet')) {
                 options.logger = {
                     ...console,
@@ -152,11 +149,8 @@ export function run(): void {
             console.log();
             console.log('  Examples:');
             console.log();
-            // eslint-disable-next-line max-len
             console.log('    $ couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/');
-            // eslint-disable-next-line max-len
             console.log('    $ couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/file.yaml');
-            // eslint-disable-next-line max-len
             console.log('    $ couchbase-index-manager -c couchbase://localhost -u Administrator -p password sync beer-sample ./directory/file.json');
         });
 

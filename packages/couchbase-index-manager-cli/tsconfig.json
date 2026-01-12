@@ -9,7 +9,7 @@
     "sourceMap": true,
     "importHelpers": true,
     "declaration": true,
-    "types": ["jest"],
+    "types": ["jest", "jest-extended"],
     
     "noImplicitAny": true,
     "noImplicitThis": true,
@@ -25,4 +25,7 @@
     "./app/**/*",
     "node_modules/jest-extended/types/**/*.d.ts"
   ],
+  "files": [
+    "global.d.ts"
+  ]
 }

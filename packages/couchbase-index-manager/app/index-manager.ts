@@ -421,7 +421,7 @@ export class IndexManager {
             let errData = null;
             try {
                 errData = JSON.parse(resp.body.toString());
-            } catch (e) {
+            } catch {
                 // ignore
             }
 
