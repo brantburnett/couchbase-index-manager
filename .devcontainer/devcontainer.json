@@ -2,7 +2,7 @@
 {
   "name": "Node.js & TypeScript",
   "dockerComposeFile": "docker-compose.yml",
-  "service": "app",
+  "service": "devcontainer",
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
 

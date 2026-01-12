@@ -1,13 +1,13 @@
 version: '3'
 
 services:
-  app:
+  devcontainer:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         # Update 'VARIANT' to pick a Node version: 12, 14, 16
-        VARIANT: 20-bullseye
+        VARIANT: '24'
         USER_UID: 1000
         USER_GID: 1000
 
@@ -27,9 +27,9 @@ services:
     # (Adding the "ports" property to this file will not forward from a Codespace.)
 
   node1:
-    image: ${CBIMAGE:-couchbase:enterprise-7.1.1}
+    image: ${CBIMAGE:-couchbase:enterprise-8.0.0}
     labels:
-      com.centeredgesoftware.cbindexmgr.image: ${CBIMAGE:-couchbase:enterprise-7.1.1}
+      com.centeredgesoftware.cbindexmgr.image: ${CBIMAGE:-couchbase:enterprise-8.0.0}
     command: >
       /bin/bash -c "
       set -m;
@@ -52,9 +52,9 @@ services:
       fi;
       fg 1"
   node2:
-    image: ${CBIMAGE:-couchbase:enterprise-7.1.1}
+    image: ${CBIMAGE:-couchbase:enterprise-8.0.0}
     labels:
-      com.centeredgesoftware.cbindexmgr.image: ${CBIMAGE:-couchbase:enterprise-7.1.1}
+      com.centeredgesoftware.cbindexmgr.image: ${CBIMAGE:-couchbase:enterprise-8.0.0}
     command: >
       /bin/bash -c "
       set -m;
@@ -71,9 +71,9 @@ services:
       fi;
       fg 1"
   node3:
-    image: ${CBIMAGE:-couchbase:enterprise-7.1.1}
+    image: ${CBIMAGE:-couchbase:enterprise-8.0.0}
     labels:
-      com.centeredgesoftware.cbindexmgr.image: ${CBIMAGE:-couchbase:enterprise-7.1.1}
+      com.centeredgesoftware.cbindexmgr.image: ${CBIMAGE:-couchbase:enterprise-8.0.0}
     command: >
       /bin/bash -c "
       set -m;
@@ -90,7 +90,7 @@ services:
       fi;
       fg 1"
   startup:
-    image: ${CBIMAGE:-couchbase:enterprise-7.1.1}
+    image: ${CBIMAGE:-couchbase:enterprise-8.0.0}
     depends_on:
       - node1
       - node2
@@ -122,14 +122,9 @@ services:
           break
         done;
         while true; do
-          ./cbdocloader -n node1.cbindexmgr -u Administrator -p password \\
-            -b beer-sample -s 100 -d /opt/couchbase/samples/beer-sample.zip &&
-          break;
-          sleep 3;
-        done;
-        while true; do
-          ./cbdocloader -n node1.cbindexmgr -u Administrator -p password \\
-            -b travel-sample -s 100 -d /opt/couchbase/samples/travel-sample.zip &&
+          curl -X POST -u Administrator:password \\
+            http://node1.cbindexmgr:8091/sampleBuckets/install \\
+            -d '["travel-sample", "beer-sample"]' &&
           break;
           sleep 3;
         done;
