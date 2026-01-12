@@ -9,6 +9,7 @@
     "sourceMap": true,
     "importHelpers": true,
     "declaration": true,
+    "types": ["jest"],
 
     "noImplicitAny": true,
     "noImplicitThis": true,
