@@ -24,8 +24,5 @@
   "include": [
     "./app/**/*",
     "node_modules/jest-extended/types/**/*.d.ts"
-  ],
-  "files": [
-    "global.d.ts"
   ]
 }
