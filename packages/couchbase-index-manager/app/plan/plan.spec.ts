@@ -4,10 +4,10 @@ import { IndexManager } from '../index-manager';
 import { CreateIndexMutation } from './create-index-mutation';
 import { Plan, PlanOptions } from './plan';
 
-const MockManager = jest.fn<IndexManager, []>(() => ({
+const MockManager = jest.fn(() => ({
     buildDeferredIndexes: jest.fn().mockResolvedValue([]),
     waitForIndexBuild: jest.fn().mockResolvedValue(true),
-    getIndexes: jest.fn().mockResolvedValue([])
+    getIndexes: jest.fn().mockResolvedValue([]),
 } as unknown as IndexManager));
 
 const planOptions: PlanOptions = {
@@ -78,7 +78,7 @@ describe('execute', function() {
             .toHaveBeenCalledBefore(thirdStub);
         expect(thirdStub)
             .toHaveBeenCalledBefore(secondStub);
-        expect(secondStub).toBeCalledTimes(1);
+        expect(secondStub).toHaveBeenCalledTimes(1);
     });
 
     it('phase failure runs rest of phase', async function() {
@@ -100,11 +100,11 @@ describe('execute', function() {
 
         try {
             await plan.execute()
-        } catch (_) {
+        } catch {
             // eat errors
         }
 
-        expect(secondStub).toBeCalledTimes(1);
+        expect(secondStub).toHaveBeenCalledTimes(1);
     });
 
     it('phase failure skips subsequent phases', async function() {
@@ -127,10 +127,10 @@ describe('execute', function() {
 
         try {
             await plan.execute();
-        } catch (_) {
+        } catch {
             // eat errors
         }
 
-        expect(secondStub).not.toBeCalled();
+        expect(secondStub).not.toHaveBeenCalled();
     });
 });

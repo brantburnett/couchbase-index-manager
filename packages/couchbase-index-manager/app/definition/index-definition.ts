@@ -113,7 +113,6 @@ const keys: KeyProcessorSet = {
         if (_.isFunction(val)) {
             fn = val;
         } else if (_.isString(val)) {
-            // eslint-disable-next-line @typescript-eslint/no-implied-eval
             fn = new Function('require', 'process', val) as PostProcessHandler;
         }
 
@@ -162,7 +161,6 @@ export class IndexDefinition extends IndexDefinitionBase implements IndexConfigu
         let key: keyof typeof keys;
         for (key in keys) {
             if (applyMissing || override[key] !== undefined) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 processKey(this, key, keys[key]!, override[key]);
             }
         }

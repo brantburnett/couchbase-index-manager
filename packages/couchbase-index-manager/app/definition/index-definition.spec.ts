@@ -1394,7 +1394,7 @@ describe('normalize', function() {
 
         await def.normalize(<IndexManager> manager);
 
-        expect(getQueryPlan).not.toBeCalled();
+        expect(getQueryPlan).not.toHaveBeenCalled();
     });
 
     it('replaces keys', async function() {
