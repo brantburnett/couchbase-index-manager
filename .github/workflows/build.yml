@@ -77,9 +77,19 @@ jobs:
       - name: Publish to NPM
         if: startsWith(github.ref, 'refs/tags/') # Only on tags
         run: |
-          npm run lerna -- version ${{ steps.get_version.outputs.RELEASE_VERSION }} --no-git-tag-version --exact -y &&
-          pushd packages/couchbase-index-manager && npm publish --access public && popd &&
-          pushd packages/couchbase-index-manager-cli && npm publish --access public&& popd
+          VERSION="${{ steps.get_version.outputs.RELEASE_VERSION }}"
+          # Determine npm tag based on version
+          if [[ $VERSION == *"-"* ]]; then
+            # Extract prerelease identifier (e.g., "beta" from "2.2.0-beta0002")
+            PRERELEASE="${VERSION#*-}"
+            TAG=$(echo "$PRERELEASE" | sed 's/[0-9]*$//')
+          else
+            TAG="latest"
+          fi
+          
+          npm run lerna -- version $VERSION --no-git-tag-version --exact -y &&
+          pushd packages/couchbase-index-manager && npm publish --access public --tag $TAG && popd &&
+          pushd packages/couchbase-index-manager-cli && npm publish --access public --tag $TAG && popd
         env:
           NPM_CONFIG_PROVENANCE: true
 
