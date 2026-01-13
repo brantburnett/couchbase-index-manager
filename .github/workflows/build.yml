@@ -78,8 +78,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') # Only on tags
         run: |
           npm run lerna -- version ${{ steps.get_version.outputs.RELEASE_VERSION }} --no-git-tag-version --exact -y &&
-          pushd packages/couchbase-index-manager && npm publish && popd &&
-          pushd packages/couchbase-index-manager-cli && npm publish && popd
+          pushd packages/couchbase-index-manager && npm publish --access public && popd &&
+          pushd packages/couchbase-index-manager-cli && npm publish --access public&& popd
         env:
           NPM_CONFIG_PROVENANCE: true
 
