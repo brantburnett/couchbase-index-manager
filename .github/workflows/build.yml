@@ -62,8 +62,8 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           provenance: true
           sbom: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=inline
+          cache-from: type=registry,ref=brantburnett/couchbase-index-manager:latest
 
       - name: Publish to NPM
         if: startsWith(github.ref, 'refs/tags/') # Only on tags
@@ -76,7 +76,7 @@ jobs:
       - name: Publish to NPM dry run
         if: ${{!startsWith(github.ref, 'refs/tags/')}} # Only on non-tags
         run: |
-          npm run lerna -- version ${{ steps.get_version.outputs.RELEASE_VERSION }} --no-git-tag-version --exact -y &&
+          npm run lerna -- version 0.1.0 --no-git-tag-version --exact -y &&
           pushd packages/couchbase-index-manager && npm publish --dry-run && popd &&
           pushd packages/couchbase-index-manager-cli && npm publish --dry-run && popd
         env:
