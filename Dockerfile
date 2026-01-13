@@ -1,4 +1,4 @@
-FROM node:20 AS build
+FROM node:24 AS build
 
 WORKDIR /app
 COPY ["package*.json", "lerna.json", "./"]
@@ -8,7 +8,7 @@ RUN npm ci
 COPY ./ ./
 RUN npm run build
 
-FROM node:20
+FROM node:24
 LABEL maintainer=bburnett@centeredgesoftware.com
 WORKDIR /app
 COPY --from=build /app ./

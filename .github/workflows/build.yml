@@ -72,7 +72,7 @@ jobs:
           provenance: true
           sbom: true
           cache-to: type=inline
-          cache-from: type=registry,ref=brantburnett/couchbase-index-manager:latest
+          cache-from: type=registry,ref=brantburnett/couchbase-index-manager:main
 
       - name: Publish to NPM
         if: startsWith(github.ref, 'refs/tags/') # Only on tags
